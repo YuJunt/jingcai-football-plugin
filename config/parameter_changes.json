@@ -40,5 +40,33 @@
       "default_budget": 100
     },
     "reason": "恢复原值"
+  },
+  {
+    "timestamp": "2026-09-07T02:18:37.750923",
+    "category": "portfolio",
+    "updates": {
+      "default_budget": 500
+    },
+    "before": {
+      "default_budget": 100
+    },
+    "after": {
+      "default_budget": 500
+    },
+    "reason": "单元测试更新"
+  },
+  {
+    "timestamp": "2026-09-07T02:18:37.832508",
+    "category": "portfolio",
+    "updates": {
+      "default_budget": 100
+    },
+    "before": {
+      "default_budget": 500
+    },
+    "after": {
+      "default_budget": 100
+    },
+    "reason": "恢复原值"
   }
 ]

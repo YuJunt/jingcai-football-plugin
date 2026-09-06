@@ -56,7 +56,7 @@ def test_full_bet_flow():
         {'match_id': 'integration_001', 'play': '胜平负', 'option': '主胜', 'odds': 1.85, 'stake': 10},
         {'match_id': 'integration_002', 'play': '总进球', 'option': '2球', 'odds': 3.20, 'stake': 10},
     ]
-    record_result = pf.record_bet_slip.fn(
+    record_result = pf.record_bet_slip(
         bet_slips=bet_slips,
         session_date='2026-01-02',
         notes='集成测试'
@@ -65,7 +65,7 @@ def test_full_bet_flow():
     bet_slip_id = record_result['bet_slip_id']
     
     # 步骤2：账户扣减
-    deduct_result = se.deduct_stake.fn(
+    deduct_result = se.deduct_stake(
         amount=20,
         bet_slip_id=bet_slip_id,
         description='集成测试扣减'
@@ -77,7 +77,7 @@ def test_full_bet_flow():
         'integration_001': {'home_goals': 2, 'away_goals': 0, 'result': '主胜'},
         'integration_002': {'home_goals': 1, 'away_goals': 1, 'result': '平局'},
     }
-    settle_result = se.settle_bet_slip.fn(
+    settle_result = se.settle_bet_slip(
         bet_slip_id=bet_slip_id,
         match_results=match_results
     )
@@ -85,20 +85,20 @@ def test_full_bet_flow():
     assert settle_result['hit_count'] >= 1  # 至少命中1注
     
     # 步骤4：赛后复盘
-    review_result = se.review_bet_slip.fn(
+    review_result = se.review_bet_slip(
         bet_slip_id=bet_slip_id,
         analysis_notes='集成测试复盘'
     )
     assert review_result['success'] == True
     
     # 步骤5：经验提取
-    lessons_result = se.extract_and_save_lessons.fn(bet_slip_id=bet_slip_id)
+    lessons_result = se.extract_and_save_lessons(bet_slip_id=bet_slip_id)
     assert lessons_result['success'] == True
     assert lessons_result['lessons_extracted'] >= 1
     
     # 步骤6：奖金入账
     if settle_result['total_payout'] > 0:
-        payout_result = se.add_payout.fn(
+        payout_result = se.add_payout(
             amount=settle_result['total_payout'],
             bet_slip_id=bet_slip_id,
             is_hit=(settle_result['hit_count'] > 0),
@@ -113,7 +113,7 @@ def test_calibration_flow():
     wf = import_module('workflow', 'test_integration_wf')
     
     # 执行参数自校准
-    result = wf.calibrate_parameters.fn(
+    result = wf.calibrate_parameters(
         play_type='胜平负',
         param_name='ev_threshold',
         min_value=0.0,
@@ -138,7 +138,7 @@ def test_persistence_flow():
     
     # 保存多条数据
     for i in range(3):
-        dc.save_match_info.fn(
+        dc.save_match_info(
             match_id=f'persist_test_{i}',
             match_info={'test': f'data_{i}'},
             info_type='official',
@@ -146,7 +146,7 @@ def test_persistence_flow():
         )
     
     # 查询
-    query_result = dc.query_persistent_data.fn(
+    query_result = dc.query_persistent_data(
         data_type='match_info',
         date='2026-01-03',
         limit=10
@@ -155,7 +155,7 @@ def test_persistence_flow():
     assert query_result['total_count'] >= 3
     
     # 统计
-    stats_result = dc.get_persistence_stats.fn()
+    stats_result = dc.get_persistence_stats()
     assert stats_result['success'] == True
     assert stats_result['total']['file_count'] > 0
 

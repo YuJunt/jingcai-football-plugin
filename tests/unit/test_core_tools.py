@@ -41,7 +41,7 @@ def test_case(name):
 
 
 def import_module(server_name, module_name):
-    """动态导入服务器模块，并自动处理FunctionTool的.fn()调用"""
+    """动态导入服务器模块，并自动处理FunctionTool的()调用"""
     import importlib.util
     server_path = os.path.join(PLUGIN_ROOT, 'servers', server_name, 'server.py')
     spec = importlib.util.spec_from_file_location(module_name, server_path)
@@ -68,7 +68,7 @@ def call_tool(module, func_name, **kwargs):
     """安全调用工具函数，自动处理FunctionTool和普通函数"""
     func = getattr(module, func_name)
     if hasattr(func, 'fn') and callable(func.fn):
-        return func.fn(**kwargs)
+        return func(**kwargs)
     return func(**kwargs)
 
 
@@ -79,7 +79,7 @@ def call_tool(module, func_name, **kwargs):
 @test_case("参数加载 - 全部参数")
 def test_load_all_parameters():
     wf = import_module('workflow', 'test_workflow_1')
-    result = wf.load_parameters.fn()
+    result = wf.load_parameters()
     assert result['success'] == True
     assert 'parameters' in result
     assert 'play_specific' in result['parameters']
@@ -89,7 +89,7 @@ def test_load_all_parameters():
 @test_case("参数加载 - 指定类别")
 def test_load_parameters_by_category():
     wf = import_module('workflow', 'test_workflow_2')
-    result = wf.load_parameters.fn(category='play_specific')
+    result = wf.load_parameters(category='play_specific')
     assert result['success'] == True
     assert len(result['parameters']) == 5  # 5个玩法
 
@@ -97,7 +97,7 @@ def test_load_parameters_by_category():
 @test_case("参数更新")
 def test_update_parameters():
     wf = import_module('workflow', 'test_workflow_3')
-    result = wf.update_parameters.fn(
+    result = wf.update_parameters(
         category='portfolio',
         updates={'default_budget': 500},
         reason='单元测试更新'
@@ -106,7 +106,7 @@ def test_update_parameters():
     assert result['after']['default_budget'] == 500
     
     # 恢复原值
-    wf.update_parameters.fn(
+    wf.update_parameters(
         category='portfolio',
         updates={'default_budget': 100},
         reason='恢复原值'
@@ -123,7 +123,7 @@ def test_record_bet_slip():
     bet_slips = [
         {'match_id': 'unit_test_001', 'play': '胜平负', 'option': '主胜', 'odds': 1.85, 'stake': 2},
     ]
-    result = pf.record_bet_slip.fn(bet_slips=bet_slips, session_date='2026-01-01', notes='单元测试')
+    result = pf.record_bet_slip(bet_slips=bet_slips, session_date='2026-01-01', notes='单元测试')
     assert result['success'] == True
     assert result['saved_count'] == 1
     assert result['total_stake'] == 2
@@ -137,17 +137,17 @@ def test_record_bet_slip():
 @test_case("模拟账户 - 初始化")
 def test_init_account():
     se = import_module('self-evolution', 'test_se_1')
-    result = se.init_account.fn(initial_balance=1000, account_name='单元测试账户')
+    result = se.init_account(initial_balance=1000, account_name='单元测试账户')
     assert result['success'] == True
 
 
 @test_case("模拟账户 - 投注扣减")
 def test_deduct_stake():
     se = import_module('self-evolution', 'test_se_2')
-    before = se.get_account.fn()
+    before = se.get_account()
     before_balance = before['balance']
     
-    result = se.deduct_stake.fn(amount=50, bet_slip_id='unit_test', description='单元测试扣减')
+    result = se.deduct_stake(amount=50, bet_slip_id='unit_test', description='单元测试扣减')
     assert result['success'] == True
     assert result['after_balance'] == before_balance - 50
 
@@ -155,10 +155,10 @@ def test_deduct_stake():
 @test_case("模拟账户 - 奖金入账")
 def test_add_payout():
     se = import_module('self-evolution', 'test_se_3')
-    before = se.get_account.fn()
+    before = se.get_account()
     before_balance = before['balance']
     
-    result = se.add_payout.fn(amount=100, bet_slip_id='unit_test', is_hit=True, description='单元测试入账')
+    result = se.add_payout(amount=100, bet_slip_id='unit_test', is_hit=True, description='单元测试入账')
     assert result['success'] == True
     assert result['after_balance'] == before_balance + 100
 
@@ -166,7 +166,7 @@ def test_add_payout():
 @test_case("模拟账户 - 查询")
 def test_get_account():
     se = import_module('self-evolution', 'test_se_4')
-    result = se.get_account.fn()
+    result = se.get_account()
     assert result['success'] == True
     assert 'balance' in result
     assert 'performance' in result
@@ -179,7 +179,7 @@ def test_get_account():
 @test_case("数据持久化 - 保存比赛资讯")
 def test_save_match_info():
     dc = import_module('data-collector', 'test_dc_1')
-    result = dc.save_match_info.fn(
+    result = dc.save_match_info(
         match_id='unit_test_001',
         match_info={'league': '测试联赛', 'home': '主队', 'away': '客队'},
         info_type='official',
@@ -192,7 +192,7 @@ def test_save_match_info():
 @test_case("数据持久化 - 保存第三方赔率")
 def test_save_third_party_odds():
     dc = import_module('data-collector', 'test_dc_2')
-    result = dc.save_third_party_odds.fn(
+    result = dc.save_third_party_odds(
         match_id='unit_test_001',
         odds_data={'european': {'home': 1.85, 'draw': 3.50, 'away': 4.20}},
         odds_type='all',
@@ -204,7 +204,7 @@ def test_save_third_party_odds():
 @test_case("数据持久化 - 查询")
 def test_query_persistent_data():
     dc = import_module('data-collector', 'test_dc_3')
-    result = dc.query_persistent_data.fn(data_type='all', date='2026-01-01', limit=10)
+    result = dc.query_persistent_data(data_type='all', date='2026-01-01', limit=10)
     assert result['success'] == True
     assert result['total_count'] >= 2  # 至少有刚才保存的2条
 
@@ -212,7 +212,7 @@ def test_query_persistent_data():
 @test_case("数据持久化 - 统计")
 def test_get_persistence_stats():
     dc = import_module('data-collector', 'test_dc_4')
-    result = dc.get_persistence_stats.fn()
+    result = dc.get_persistence_stats()
     assert result['success'] == True
     assert 'total' in result
     assert 'stats' in result
