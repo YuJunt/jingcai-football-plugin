@@ -1876,5 +1876,104 @@ def get_settlement_detail(match_id: str) -> dict:
     return result
 
 
+
+@mcp.tool()
+def cache_third_party_data(match_id: str, date: str, odds_data: dict = None, 
+                            news_data: dict = None, source: str = "general_search") -> dict:
+    """
+    缓存第三方数据到本地，避免重复搜索
+    支持赔率数据和资讯数据，按日期+比赛ID存储
+    """
+    import os, json
+    cache_dir = os.path.join(PLUGIN_ROOT, 'data', 'third_party', date)
+    os.makedirs(cache_dir, exist_ok=True)
+    
+    saved = {}
+    if odds_data:
+        odds_file = os.path.join(cache_dir, f'{match_id}_odds.json')
+        with open(odds_file, 'w', encoding='utf-8') as f:
+            json.dump({'match_id': match_id, 'date': date, 'source': source, 
+                       'cached_at': datetime.now().isoformat(), 'data': odds_data}, f, ensure_ascii=False, indent=2)
+        saved['odds'] = odds_file
+    
+    if news_data:
+        news_file = os.path.join(cache_dir, f'{match_id}_news.json')
+        with open(news_file, 'w', encoding='utf-8') as f:
+            json.dump({'match_id': match_id, 'date': date, 'source': source,
+                       'cached_at': datetime.now().isoformat(), 'data': news_data}, f, ensure_ascii=False, indent=2)
+        saved['news'] = news_file
+    
+    return {'success': True, 'data': {'match_id': match_id, 'saved_files': saved, 'note': '第三方数据已缓存'}}
+
+
+@mcp.tool()
+def load_third_party_data(match_id: str, date: str, data_type: str = "all") -> dict:
+    """
+    从缓存加载第三方数据
+    data_type: odds/news/all
+    如果缓存不存在，返回cache_miss=False，提示需要搜索
+    """
+    import os, json
+    cache_dir = os.path.join(PLUGIN_ROOT, 'data', 'third_party', date)
+    
+    result = {'match_id': match_id, 'date': date, 'cache_hit': False, 'odds': None, 'news': None}
+    
+    if data_type in ['odds', 'all']:
+        odds_file = os.path.join(cache_dir, f'{match_id}_odds.json')
+        if os.path.exists(odds_file):
+            with open(odds_file, 'r', encoding='utf-8') as f:
+                cached = json.load(f)
+            result['odds'] = cached.get('data', {})
+            result['odds_cached_at'] = cached.get('cached_at', '')
+            result['cache_hit'] = True
+    
+    if data_type in ['news', 'all']:
+        news_file = os.path.join(cache_dir, f'{match_id}_news.json')
+        if os.path.exists(news_file):
+            with open(news_file, 'r', encoding='utf-8') as f:
+                cached = json.load(f)
+            result['news'] = cached.get('data', {})
+            result['news_cached_at'] = cached.get('cached_at', '')
+            result['cache_hit'] = True
+    
+    if not result['cache_hit']:
+        result['note'] = '缓存未命中，需要用general_search搜索后调用cache_third_party_data保存'
+    
+    return {'success': True, 'data': result}
+
+
+@mcp.tool()
+def record_odds_snapshot(match_id: str, date: str, odds: dict, phase: str = "opening") -> dict:
+    """
+    记录赔率快照（初盘/即时/终盘），支持赔率走势分析
+    phase: opening(初盘)/live(即时)/closing(终盘)
+    """
+    import os, json
+    history_dir = os.path.join(PLUGIN_ROOT, 'data', 'third_party', 'odds_history')
+    os.makedirs(history_dir, exist_ok=True)
+    
+    history_file = os.path.join(history_dir, f'{match_id}_{date}.json')
+    
+    # 加载已有历史
+    if os.path.exists(history_file):
+        with open(history_file, 'r', encoding='utf-8') as f:
+            history = json.load(f)
+    else:
+        history = {'match_id': match_id, 'date': date, 'snapshots': []}
+    
+    # 添加新快照
+    history['snapshots'].append({
+        'phase': phase,
+        'timestamp': datetime.now().isoformat(),
+        'odds': odds
+    })
+    
+    with open(history_file, 'w', encoding='utf-8') as f:
+        json.dump(history, f, ensure_ascii=False, indent=2)
+    
+    return {'success': True, 'data': {'match_id': match_id, 'phase': phase, 
+                                       'snapshot_count': len(history['snapshots']),
+                                       'note': f'{phase}赔率快照已记录'}}
+
 if __name__ == '__main__':
     mcp.run()

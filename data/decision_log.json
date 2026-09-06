@@ -880,7 +880,7 @@
       "created_at": "2026-09-05 17:46:46"
     }
   ],
-  "next_id": 47,
+  "next_id": 51,
   "next_combo_id": 22,
   "decisions": [
     {
@@ -1707,6 +1707,66 @@
       "result": null,
       "winnings": 0,
       "created_at": "2026-09-06T17:34:24.942901"
+    },
+    {
+      "id": "D0047",
+      "date": "2026-09-06",
+      "match": "测试",
+      "play": "胜平负",
+      "option": "主胜",
+      "odds": 1.8,
+      "prob": 0.55,
+      "ev": -0.01,
+      "reason": "测试决策",
+      "status": "pending",
+      "result": null,
+      "winnings": 0,
+      "created_at": "2026-09-06T17:54:02.885574"
+    },
+    {
+      "id": "D0048",
+      "date": "2026-09-06",
+      "match": "测试",
+      "play": "胜平负",
+      "option": "主胜",
+      "odds": 1.8,
+      "prob": 0.55,
+      "ev": -0.01,
+      "reason": "测试决策",
+      "status": "pending",
+      "result": null,
+      "winnings": 0,
+      "created_at": "2026-09-06T17:54:20.138407"
+    },
+    {
+      "id": "D0049",
+      "date": "2026-09-06",
+      "match": "测试",
+      "play": "胜平负",
+      "option": "主胜",
+      "odds": 1.8,
+      "prob": 0.55,
+      "ev": -0.01,
+      "reason": "测试决策",
+      "status": "pending",
+      "result": null,
+      "winnings": 0,
+      "created_at": "2026-09-06T17:55:00.512523"
+    },
+    {
+      "id": "D0050",
+      "date": "2026-09-06",
+      "match": "测试",
+      "play": "胜平负",
+      "option": "主胜",
+      "odds": 1.8,
+      "prob": 0.55,
+      "ev": -0.01,
+      "reason": "测试决策",
+      "status": "pending",
+      "result": null,
+      "winnings": 0,
+      "created_at": "2026-09-06T17:55:49.410968"
     }
   ]
 }

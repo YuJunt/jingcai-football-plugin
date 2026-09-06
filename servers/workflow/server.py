@@ -17,6 +17,7 @@ mcp = FastMCP("jingcai-workflow")
 
 # 插件根目录
 PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+OUTPUT_DIR = os.path.join(PLUGIN_ROOT, 'output')
 
 # 统一返回格式工具
 sys.path.insert(0, os.path.join(PLUGIN_ROOT, 'common'))
@@ -100,10 +101,16 @@ def parallel_call(stage, tool_calls, max_workers=4):
     return results
 
 @mcp.tool()
-def run_full_workflow(date: str = None, total_budget: float = 500, risk_preference: str = "balanced") -> dict:
+def run_full_workflow(date: str = None, total_budget: float = 500, risk_preference: str = "balanced", mode: str = "full") -> dict:
     """
     竞彩足球完整工作流超级一键工具
-    内部按4阶段调用全部125个MCP工具，确保100%工具利用率
+    mode: quick(快速模式~40工具)/full(全量模式~111工具)/update(增量模式~只更新变化部分)
+    
+    阶段1：数据采集（32个data-collector工具）
+    阶段2：深度分析（48个analyzer工具）
+    阶段3：投注组合（19个portfolio + 4个quality-control工具）
+    阶段4：自进化（17个self-evolution工具）
+    报告生成（5个report-generator工具）
     
     阶段1：数据采集（32个data-collector工具）
     阶段2：深度分析（48个analyzer工具）
@@ -122,6 +129,16 @@ def run_full_workflow(date: str = None, total_budget: float = 500, risk_preferen
     if not date:
         date = datetime.now().strftime('%Y-%m-%d')
     start_ts = time.time()
+    start_time = time.strftime('%Y-%m-%d %H:%M:%S')
+    
+    # 模式配置
+    mode_config = {
+        'quick': {'skip_advanced': True, 'skip_history': True, 'skip_visualization': True, 'note': '快速模式：仅核心工具'},
+        'full': {'skip_advanced': False, 'skip_history': False, 'skip_visualization': False, 'note': '全量模式：所有工具'},
+        'update': {'skip_advanced': True, 'skip_history': True, 'skip_visualization': True, 'incremental': True, 'note': '增量模式：只更新变化部分'},
+    }
+    config = mode_config.get(mode, mode_config['full'])
+    print(f"\n运行模式: {mode} - {config['note']}")
     
     result = {
         'workflow_id': f"wf_{int(time.time())}",
@@ -270,7 +287,7 @@ def run_full_workflow(date: str = None, total_budget: float = 500, risk_preferen
     # 阶段2：深度分析（48个analyzer工具）
     # ================================================================
     print("\n" + "=" * 60)
-    print("阶段2：深度分析（48个analyzer工具）")
+    print(f"阶段2：深度分析（{'核心' if config['skip_advanced'] else '全部'}analyzer工具）")
     print("=" * 60)
     
     # 对每场重点比赛调用full_match_analysis
@@ -441,9 +458,12 @@ def run_full_workflow(date: str = None, total_budget: float = 500, risk_preferen
     report_result['nine_step_report'] = call_tool('报告', 'generate_analysis_report_nine_step', rg.generate_analysis_report_nine_step, sample_matches, {}, {})
     report_result['standardized'] = call_tool('报告', 'standardize_output', rg.standardize_output, '', bet_slips, 'all')
     report_result['visualization'] = call_tool('报告', 'generate_visualization_html', rg.generate_visualization_html, sample_matches, analysis_results, date)
-    # 可视化服务器（P3-1新增）
-    call_tool('报告', 'generate_interactive_report', viz.generate_interactive_report, sample_matches, analysis_results, bet_slips, date)
-    call_tool('报告', 'generate_ev_distribution_chart', viz.generate_ev_distribution_chart, value_options[:20] if value_options else [], date)
+    # 可视化服务器 - 快速/增量模式跳过
+    if not config.get('skip_visualization', False):
+        call_tool('报告', 'generate_interactive_report', viz.generate_interactive_report, sample_matches, analysis_results, bet_slips, date)
+        call_tool('报告', 'generate_ev_distribution_chart', viz.generate_ev_distribution_chart, value_options[:20] if value_options else [], date)
+    else:
+        print("  ⏭️  快速模式：跳过可视化图表生成")
     
     # ================================================================
     # 汇总
@@ -477,6 +497,12 @@ def run_full_workflow(date: str = None, total_budget: float = 500, risk_preferen
         'duration_seconds': round(time.time() - start_ts, 1),
         'observability': result['observability'],
     }
+    # 保存运行结果到缓存（用于增量模式）
+    cache_file = os.path.join(OUTPUT_DIR, f'workflow_cache_{date}.json')
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    with open(cache_file, 'w', encoding='utf-8') as f:
+        json.dump(workflow_result, f, ensure_ascii=False, default=str)
+    
     return ok('run_full_workflow', workflow_result, 
              duration=round(time.time() - start_ts, 1),
              tools_called=result['tools_called'],
