@@ -3899,5 +3899,321 @@ def full_match_analysis(
 
 
 
+
+# ============================================================
+# 历史数据深度应用工具（P1-3新增）
+# ============================================================
+
+@mcp.tool()
+def find_similar_matches(home_team: str, away_team: str, league: str = "", limit: int = 5) -> dict:
+    """
+    查找相同/相似对阵的历史比赛记录
+    自动匹配历史交锋，返回最近N场的结果、进球、赔率规律
+    用于：赛前分析时参考历史对阵规律
+    """
+    import json, os
+    history_dir = os.path.join(PLUGIN_ROOT, 'data', 'history')
+    if not os.path.exists(history_dir):
+        return {'success': False, 'error': '历史数据目录不存在'}
+    
+    results = []
+    for filename in os.listdir(history_dir):
+        if not filename.endswith('_history.json'):
+            continue
+        filepath = os.path.join(history_dir, filename)
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                matches = json.load(f)
+            for m in matches:
+                h = m.get('home', '')
+                a = m.get('away', '')
+                # 精确匹配或模糊匹配
+                if (home_team in h and away_team in a) or (home_team in a and away_team in h):
+                    results.append({
+                        'date': m.get('date', ''),
+                        'home': h, 'away': a,
+                        'home_goals': m.get('home_goals', ''),
+                        'away_goals': m.get('away_goals', ''),
+                        'result': m.get('result', ''),
+                        'league': filename.replace('_history.json', ''),
+                    })
+        except:
+            continue
+    
+    # 按日期排序，取最近limit场
+    results.sort(key=lambda x: x.get('date', ''), reverse=True)
+    results = results[:limit]
+    
+    # 统计规律
+    if results:
+        home_wins = sum(1 for r in results if r['result'] == 'H')
+        draws = sum(1 for r in results if r['result'] == 'D')
+        away_wins = sum(1 for r in results if r['result'] == 'A')
+        avg_goals = sum((r['home_goals'] or 0) + (r['away_goals'] or 0) for r in results if isinstance(r['home_goals'], int)) / max(len(results), 1)
+        stats = {
+            'total': len(results),
+            'home_win_rate': round(home_wins / len(results), 3),
+            'draw_rate': round(draws / len(results), 3),
+            'away_win_rate': round(away_wins / len(results), 3),
+            'avg_goals': round(avg_goals, 2),
+            'over_25_rate': round(sum(1 for r in results if isinstance(r['home_goals'], int) and (r['home_goals'] + r['away_goals']) > 2.5) / len(results), 3),
+        }
+    else:
+        stats = {'total': 0, 'note': '未找到历史交锋记录'}
+    
+    return {'success': True, 'data': {'matches': results, 'stats': stats}}
+
+
+@mcp.tool()
+def league_pattern_match(league: str, home_team: str = "", away_team: str = "") -> dict:
+    """
+    联赛特征自动匹配
+    分析当前联赛的历史规律：主胜率/平局率/大球率/场均进球/常见比分
+    用于：调整模型概率，识别联赛特性
+    """
+    import json, os
+    history_dir = os.path.join(PLUGIN_ROOT, 'data', 'history')
+    filepath = os.path.join(history_dir, f'{league}_history.json')
+    if not os.path.exists(filepath):
+        return {'success': False, 'error': f'联赛{league}历史数据不存在'}
+    
+    with open(filepath, 'r', encoding='utf-8') as f:
+        matches = json.load(f)
+    
+    if not matches:
+        return {'success': False, 'error': '联赛数据为空'}
+    
+    total = len(matches)
+    home_wins = sum(1 for m in matches if m.get('result') == 'H')
+    draws = sum(1 for m in matches if m.get('result') == 'D')
+    away_wins = sum(1 for m in matches if m.get('result') == 'A')
+    
+    # 进球统计
+    goals = [m.get('home_goals', 0) + m.get('away_goals', 0) for m in matches if isinstance(m.get('home_goals'), int)]
+    avg_goals = sum(goals) / max(len(goals), 1)
+    over_25 = sum(1 for g in goals if g > 2.5)
+    over_35 = sum(1 for g in goals if g > 3.5)
+    under_25 = sum(1 for g in goals if g < 2.5)
+    
+    # 常见比分统计
+    from collections import Counter
+    score_counts = Counter()
+    for m in matches:
+        if isinstance(m.get('home_goals'), int):
+            score = f"{m['home_goals']}:{m['away_goals']}"
+            score_counts[score] += 1
+    top_scores = score_counts.most_common(5)
+    
+    # 球队特定统计（如果指定了球队）
+    team_stats = {}
+    if home_team:
+        team_matches = [m for m in matches if m.get('home') == home_team or m.get('away') == home_team]
+        if team_matches:
+            team_stats[home_team] = {
+                'matches': len(team_matches),
+                'win_rate': round(sum(1 for m in team_matches if (m.get('home') == home_team and m.get('result') == 'H') or (m.get('away') == home_team and m.get('result') == 'A')) / len(team_matches), 3),
+                'avg_goals_for': round(sum(m.get('home_goals', 0) if m.get('home') == home_team else m.get('away_goals', 0) for m in team_matches if isinstance(m.get('home_goals'), int)) / len(team_matches), 2),
+            }
+    
+    return {
+        'success': True,
+        'data': {
+            'league': league,
+            'total_matches': total,
+            'home_win_rate': round(home_wins / total, 3),
+            'draw_rate': round(draws / total, 3),
+            'away_win_rate': round(away_wins / total, 3),
+            'avg_goals': round(avg_goals, 2),
+            'over_25_rate': round(over_25 / max(len(goals), 1), 3),
+            'over_35_rate': round(over_35 / max(len(goals), 1), 3),
+            'under_25_rate': round(under_25 / max(len(goals), 1), 3),
+            'top_5_scores': [{'score': s, 'count': c, 'rate': round(c/total, 3)} for s, c in top_scores],
+            'team_stats': team_stats,
+        }
+    }
+
+
+@mcp.tool()
+def strategy_backtest(league: str, strategy_type: str = "value_betting", params: dict = None) -> dict:
+    """
+    策略回测：用历史数据验证投注策略表现
+    支持策略：value_betting（价值投注）、hot_fade（热门反买）、draw_fade（平局反买）、over_strategy（大球策略）
+    返回：命中率/ROI/最大回撤/盈亏曲线
+    """
+    import json, os
+    history_dir = os.path.join(PLUGIN_ROOT, 'data', 'history')
+    filepath = os.path.join(history_dir, f'{league}_history.json')
+    if not os.path.exists(filepath):
+        return {'success': False, 'error': f'联赛{league}历史数据不存在'}
+    
+    with open(filepath, 'r', encoding='utf-8') as f:
+        matches = json.load(f)
+    
+    if not matches:
+        return {'success': False, 'error': '联赛数据为空'}
+    
+    params = params or {}
+    bankroll = 1000  # 初始资金1000
+    stake = params.get('stake', 20)  # 每注20元
+    trades = []
+    wins = 0
+    losses = 0
+    total_staked = 0
+    total_return = 0
+    peak = bankroll
+    max_drawdown = 0
+    
+    for m in matches:
+        if not isinstance(m.get('home_goals'), int):
+            continue
+        odds = m.get('odds', {})
+        if not odds:
+            continue
+        
+        # 根据策略类型选择投注
+        pick = None
+        pick_odds = 0
+        
+        if strategy_type == "value_betting":
+            # 价值投注：找赔率>隐含概率的选项
+            home_odds = odds.get('home', 0)
+            draw_odds = odds.get('draw', 0)
+            away_odds = odds.get('away', 0)
+            if home_odds > 0 and 1/home_odds < 0.45:
+                pick, pick_odds = 'H', home_odds
+            elif away_odds > 0 and 1/away_odds < 0.25:
+                pick, pick_odds = 'A', away_odds
+        elif strategy_type == "hot_fade":
+            # 热门反买：赔率最低的选项反买
+            home_odds = odds.get('home', 99)
+            draw_odds = odds.get('draw', 99)
+            away_odds = odds.get('away', 99)
+            min_odds = min(home_odds, draw_odds, away_odds)
+            if min_odds == home_odds and away_odds < 99:
+                pick, pick_odds = 'A', away_odds
+            elif min_odds == away_odds and home_odds < 99:
+                pick, pick_odds = 'H', home_odds
+        elif strategy_type == "over_strategy":
+            # 大球策略：场均进球>2.5的联赛追大
+            total_goals = m.get('home_goals', 0) + m.get('away_goals', 0)
+            ou_odds = odds.get('over', 1.9)
+            pick, pick_odds = 'OVER', ou_odds
+            if total_goals > 2.5:
+                wins += 1
+                bankroll += stake * (pick_odds - 1)
+            else:
+                losses += 1
+                bankroll -= stake
+            total_staked += stake
+            peak = max(peak, bankroll)
+            max_drawdown = max(max_drawdown, peak - bankroll)
+            continue
+        
+        if pick and pick_odds > 0:
+            total_staked += stake
+            result = m.get('result', '')
+            if result == pick:
+                wins += 1
+                bankroll += stake * (pick_odds - 1)
+                total_return += stake * pick_odds
+            else:
+                losses += 1
+                bankroll -= stake
+            peak = max(peak, bankroll)
+            max_drawdown = max(max_drawdown, peak - bankroll)
+            trades.append({'date': m.get('date', ''), 'pick': pick, 'odds': pick_odds, 'result': result, 'win': result == pick})
+    
+    total_trades = wins + losses
+    roi = (bankroll - 1000) / 1000 if total_trades > 0 else 0
+    
+    return {
+        'success': True,
+        'data': {
+            'strategy': strategy_type,
+            'league': league,
+            'total_trades': total_trades,
+            'wins': wins,
+            'losses': losses,
+            'win_rate': round(wins / total_trades, 3) if total_trades > 0 else 0,
+            'total_staked': total_staked,
+            'final_bankroll': round(bankroll, 2),
+            'roi': round(roi, 4),
+            'max_drawdown': round(max_drawdown, 2),
+            'avg_odds': round(total_return / max(wins, 1), 2),
+            'recent_10': trades[-10:],
+        }
+    }
+
+
+@mcp.tool()
+def update_team_strength(league: str, match_results: list = None) -> dict:
+    """
+    球队强度动态更新
+    用最新赛果更新球队的Elo评分和攻防强度
+    用于：模型概率校准，反映球队最新状态
+    """
+    import json, os
+    ratings_file = os.path.join(PLUGIN_ROOT, 'data', 'team_ratings.json')
+    
+    # 加载现有评分
+    if os.path.exists(ratings_file):
+        with open(ratings_file, 'r', encoding='utf-8') as f:
+            ratings = json.load(f)
+    else:
+        ratings = {}
+    
+    # 如果提供了比赛结果，更新评分
+    if match_results:
+        K = 32  # Elo K因子
+        for match in match_results:
+            home = match.get('home', '')
+            away = match.get('away', '')
+            home_goals = match.get('home_goals', 0)
+            away_goals = match.get('away_goals', 0)
+            
+            if home not in ratings:
+                ratings[home] = {'elo': 1500, 'attack': 1.0, 'defense': 1.0, 'matches': 0}
+            if away not in ratings:
+                ratings[away] = {'elo': 1500, 'attack': 1.0, 'defense': 1.0, 'matches': 0}
+            
+            # Elo更新
+            expected_home = 1 / (1 + 10 ** ((ratings[away]['elo'] - ratings[home]['elo']) / 400))
+            if home_goals > away_goals:
+                actual_home = 1
+            elif home_goals == away_goals:
+                actual_home = 0.5
+            else:
+                actual_home = 0
+            
+            ratings[home]['elo'] += K * (actual_home - expected_home)
+            ratings[away]['elo'] -= K * (actual_home - expected_home)
+            
+            # 攻防强度更新（简单移动平均）
+            ratings[home]['attack'] = ratings[home]['attack'] * 0.9 + home_goals * 0.1
+            ratings[home]['defense'] = ratings[home]['defense'] * 0.9 + away_goals * 0.1
+            ratings[away]['attack'] = ratings[away]['attack'] * 0.9 + away_goals * 0.1
+            ratings[away]['defense'] = ratings[away]['defense'] * 0.9 + home_goals * 0.1
+            
+            ratings[home]['matches'] += 1
+            ratings[away]['matches'] += 1
+    
+    # 保存
+    with open(ratings_file, 'w', encoding='utf-8') as f:
+        json.dump(ratings, f, ensure_ascii=False, indent=2)
+    
+    # 返回联赛内球队排名
+    league_teams = {k: v for k, v in ratings.items() if v.get('league') == league or league == ""}
+    sorted_teams = sorted(league_teams.items(), key=lambda x: x[1].get('elo', 1500), reverse=True)
+    
+    return {
+        'success': True,
+        'data': {
+            'total_teams': len(ratings),
+            'updated_matches': len(match_results) if match_results else 0,
+            'top_10_teams': [{'team': k, 'elo': round(v.get('elo', 1500), 1), 'attack': round(v.get('attack', 1), 2), 'defense': round(v.get('defense', 1), 2)} for k, v in sorted_teams[:10]],
+        }
+    }
+
+
 if __name__ == '__main__':
     mcp.run()
