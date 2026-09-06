@@ -58,12 +58,32 @@ def calc_parlay_payout(odds_list: list, stake: float = 2, multiplier: int = 1) -
     Returns:
         奖金计算、赔率乘积、投入金额、理论最高奖金
     """
-    if not odds_list:
-        return {'error': '赔率列表不能为空'}
+    # 参数校验
+    if odds_list is None or not isinstance(odds_list, list):
+        return make_error_response("odds_list不能为空且必须是列表", "validation", "请提供各场赔率列表")
+    if len(odds_list) == 0:
+        return make_error_response("odds_list不能为空", "validation", "赔率列表至少包含1个赔率")
+    # 验证每个赔率都是正数
+    for i, o in enumerate(odds_list):
+        try:
+            o = float(o)
+            if o <= 0:
+                return make_error_response(f"第{i+1}个赔率必须大于0", "validation", "赔率必须>0")
+        except (ValueError, TypeError):
+            return make_error_response(f"第{i+1}个赔率必须是数字", "validation", "赔率必须是数字类型")
+    try:
+        stake = float(stake)
+        multiplier = int(multiplier)
+    except (ValueError, TypeError):
+        return make_error_response("stake和multiplier必须是数字", "validation", "每注金额和投注倍数必须是数字")
+    if stake <= 0:
+        return make_error_response("stake必须大于0", "validation", "每注金额必须>0")
+    if multiplier <= 0:
+        return make_error_response("multiplier必须大于0", "validation", "投注倍数必须>0")
     
     odds_product = 1.0
     for o in odds_list:
-        odds_product *= o
+        odds_product *= float(o)
     
     total_stake = stake * multiplier
     max_payout = odds_product * total_stake
@@ -96,10 +116,27 @@ def build_quanbao(baodan_odds: float, target_odds: list, target_labels: list,
         target_odds: 目标选项赔率列表
         target_labels: 目标选项标签列表
         stake_per_bet: 每注金额
+    """
+    """
+    全包保本组合（稳胆全包+目标选项，确保不亏）
+    
+    Args:
+        baodan_odds: 稳胆赔率
+        target_odds: 目标选项赔率列表
+        target_labels: 目标选项标签列表
+        stake_per_bet: 每注金额
     
     Returns:
         全包保本组合方案、保本线、盈利分析
     """
+    # 参数校验
+    if baodan_odds is None:
+        return make_error_response('baodan_odds不能为空', 'validation', '请提供baodan_odds参数')
+    if target_odds is None:
+        return make_error_response('target_odds不能为空', 'validation', '请提供target_odds参数')
+    if target_labels is None:
+        return make_error_response('target_labels不能为空', 'validation', '请提供target_labels参数')
+    
     if len(target_odds) != len(target_labels):
         return {'error': '赔率和标签数量不匹配'}
     
@@ -150,6 +187,12 @@ def build_3chuan4(match_odds: list, multiplier: int = 1) -> dict:
     Returns:
         3串4组合方案、容错分析、各种命中情况的奖金
     """
+    # 参数校验
+    if match_odds is None:
+        return make_error_response('match_odds不能为空', 'validation', '请提供match_odds参数')
+    if multiplier is None:
+        return make_error_response('multiplier不能为空', 'validation', '请提供multiplier参数')
+
     if len(match_odds) != 3:
         return {'error': '3串4需要正好3场比赛'}
     
@@ -216,6 +259,14 @@ def build_shared_dan(dan_odds: float, uncertain_odds: list, uncertain_labels: li
     Returns:
         共享稳胆组合方案、风险分散分析
     """
+    # 参数校验
+    if dan_odds is None:
+        return make_error_response('dan_odds不能为空', 'validation', '请提供dan_odds参数')
+    if uncertain_odds is None:
+        return make_error_response('uncertain_odds不能为空', 'validation', '请提供uncertain_odds参数')
+    if uncertain_labels is None:
+        return make_error_response('uncertain_labels不能为空', 'validation', '请提供uncertain_labels参数')
+    
     if len(uncertain_odds) != len(uncertain_labels):
         return {'error': '赔率和标签数量不匹配'}
     
@@ -261,6 +312,18 @@ def optimize_combo(candidates: list, constraints: dict, budget: float = 100) -> 
     Returns:
         最优组合方案、评分、约束满足情况
     """
+    # 参数校验
+    if candidates is None or not isinstance(candidates, list):
+        return make_error_response("candidates不能为空且必须是列表", "validation", "请提供候选选项列表")
+    if constraints is None or not isinstance(constraints, dict):
+        return make_error_response("constraints不能为空且必须是字典", "validation", "请提供约束条件字典")
+    try:
+        budget = float(budget)
+    except (ValueError, TypeError):
+        return make_error_response("budget必须是数字", "validation", "预算必须是数字类型")
+    if budget <= 0:
+        return make_error_response("budget必须大于0", "validation", "预算必须>0")
+    
     return {
         'candidates_count': len(candidates),
         'constraints': constraints,
@@ -289,6 +352,18 @@ def auto_select_mn(candidates: list, budget: float = 50) -> dict:
     Returns:
         推荐M串N类型、理由、各种M串N的对比
     """
+    # 参数校验
+    if candidates is None:
+        return make_error_response("candidates不能为空", "validation", "请提供候选选项列表")
+    if not isinstance(candidates, list):
+        return make_error_response("candidates必须是列表", "validation", "请提供列表类型的候选选项")
+    try:
+        budget = float(budget)
+    except (ValueError, TypeError):
+        return make_error_response("budget必须是数字", "validation", "预算必须是数字")
+    if budget <= 0:
+        return make_error_response("budget必须大于0", "validation", "预算必须>0")
+    
     n_candidates = len(candidates)
     
     if n_candidates < 2:
@@ -346,6 +421,21 @@ def build_hedge_structure(candidates: list, budget: float = 100,
     Returns:
         对冲结构方案、三层资金分配、风险分析
     """
+    # 参数校验
+    if candidates is None:
+        return make_error_response("candidates不能为空", "validation", "请提供候选选项列表")
+    if not isinstance(candidates, list):
+        return make_error_response("candidates必须是列表", "validation", "请提供列表类型的候选选项")
+    try:
+        budget = float(budget)
+        min_hedge_ratio = float(min_hedge_ratio)
+    except (ValueError, TypeError):
+        return make_error_response("参数类型错误", "validation", "budget和min_hedge_ratio必须是数字")
+    if budget <= 0:
+        return make_error_response("budget必须大于0", "validation", "预算必须>0")
+    if min_hedge_ratio < 0 or min_hedge_ratio > 1:
+        return make_error_response("min_hedge_ratio超出范围", "validation", "对冲比例必须在0到1之间")
+    
     # 三层资金分配
     stable_ratio = min_hedge_ratio  # 稳健层
     fault_tolerant_ratio = 0.25  # 容错层
@@ -402,8 +492,39 @@ def simulate_hedge(probs: list, odds: list, stake_per_leg: float = 2,
     Returns:
         模拟结果（胜率/平均收益/收益分布/最大回撤）
     """
+    # 参数校验
+    if probs is None or not isinstance(probs, list):
+        return make_error_response("probs不能为空且必须是列表", "validation", "请提供各选项概率列表")
+    if odds is None or not isinstance(odds, list):
+        return make_error_response("odds不能为空且必须是列表", "validation", "请提供各选项赔率列表")
+    if len(probs) == 0:
+        return make_error_response("probs不能为空", "validation", "概率列表至少包含1个概率")
+    if len(odds) == 0:
+        return make_error_response("odds不能为空", "validation", "赔率列表至少包含1个赔率")
     if len(probs) != len(odds):
-        return {'error': '概率和赔率数量不匹配'}
+        return make_error_response("概率和赔率数量不匹配", "validation", f"概率有{len(probs)}个，赔率有{len(odds)}个，必须相等")
+    # 验证概率和赔率都是有效数字
+    for i, (p, o) in enumerate(zip(probs, odds)):
+        try:
+            p = float(p)
+            o = float(o)
+        except (ValueError, TypeError):
+            return make_error_response(f"第{i+1}个概率/赔率必须是数字", "validation", "概率和赔率必须是数字类型")
+        if p < 0 or p > 1:
+            return make_error_response(f"第{i+1}个概率必须在0到1之间", "validation", "概率必须在0到1之间")
+        if o <= 0:
+            return make_error_response(f"第{i+1}个赔率必须大于0", "validation", "赔率必须>0")
+    try:
+        stake_per_leg = float(stake_per_leg)
+        n_simulations = int(n_simulations)
+    except (ValueError, TypeError):
+        return make_error_response("stake_per_leg和n_simulations必须是数字", "validation", "每注金额和模拟次数必须是数字")
+    if stake_per_leg <= 0:
+        return make_error_response("stake_per_leg必须大于0", "validation", "每注金额必须>0")
+    if n_simulations <= 0:
+        return make_error_response("n_simulations必须大于0", "validation", "模拟次数必须>0")
+    if n_simulations > 1000000:
+        return make_error_response("n_simulations不能超过1000000", "validation", "模拟次数最多100万次")
     
     random.seed(42)
     n = len(probs)
@@ -469,6 +590,21 @@ def bankroll_management(total: float, max_per_session: float, bets: list = None)
     Returns:
         资金状态、建议投入、风险提示
     """
+    # 参数校验
+    if total is None or max_per_session is None:
+        return make_error_response("total和max_per_session不能为空", "validation", "请提供总资金和单期最大投入")
+    try:
+        total = float(total)
+        max_per_session = float(max_per_session)
+    except (ValueError, TypeError):
+        return make_error_response("参数类型错误", "validation", "total和max_per_session必须是数字")
+    if total <= 0:
+        return make_error_response("total必须大于0", "validation", "总资金必须>0")
+    if max_per_session <= 0:
+        return make_error_response("max_per_session必须大于0", "validation", "单期最大投入必须>0")
+    if bets is not None and not isinstance(bets, list):
+        return make_error_response("bets必须是列表", "validation", "投注列表必须是列表类型")
+    
     suggested_bet = total * 0.05  # 建议单期投入不超过总资金5%
     max_allowed = min(max_per_session, total * 0.1)  # 单期最大不超过10%
     
@@ -503,6 +639,12 @@ def generate_bet_slip(bets: list, format: str = 'card') -> dict:
     Returns:
         标准投注单文本、格式说明
     """
+    # 参数校验
+    if bets is None:
+        return make_error_response('bets不能为空', 'validation', '请提供bets参数')
+    if format is None:
+        return make_error_response('format不能为空', 'validation', '请提供format参数')
+
     if not bets:
         return {'error': '投注单列表为空'}
     
@@ -579,6 +721,14 @@ def experience_driven_advisor(value_options: list, lessons: list = None, risk_pr
     Returns:
         经验驱动的投注建议
     """
+    # 参数校验
+    if value_options is None:
+        return make_error_response('value_options不能为空', 'validation', '请提供value_options参数')
+    if lessons is None:
+        return make_error_response('lessons不能为空', 'validation', '请提供lessons参数')
+    if risk_preference is None:
+        return make_error_response('risk_preference不能为空', 'validation', '请提供risk_preference参数')
+
     if not value_options:
         return {'error': '无有价值选项'}
     
@@ -636,6 +786,14 @@ def portfolio_advisor(matches_analysis: list, budget: float = 1000, strategy: st
     Returns:
         投注组合建议
     """
+    # 参数校验
+    if matches_analysis is None:
+        return make_error_response('matches_analysis不能为空', 'validation', '请提供matches_analysis参数')
+    if budget is None:
+        return make_error_response('budget不能为空', 'validation', '请提供budget参数')
+    if strategy is None:
+        return make_error_response('strategy不能为空', 'validation', '请提供strategy参数')
+
     if not matches_analysis:
         return {'error': '无比赛分析结果'}
     
@@ -687,8 +845,22 @@ def dynamic_portfolio_generator(value_options: list, budget: float = 1000, max_t
     Returns:
         动态生成的投注组合（多张投注单）
     """
-    if not value_options:
-        return {'error': '无有价值选项'}
+    # 参数校验
+    if value_options is None:
+        return make_error_response("value_options不能为空", "validation", "请提供有价值选项列表")
+    if not isinstance(value_options, list):
+        return make_error_response("value_options必须是列表", "validation", "请提供列表类型的价值选项")
+    if len(value_options) == 0:
+        return make_error_response("value_options不能为空列表", "validation", "请提供至少一个价值选项")
+    try:
+        budget = float(budget)
+        max_tickets = int(max_tickets)
+    except (ValueError, TypeError):
+        return make_error_response("参数类型错误", "validation", "budget必须是数字，max_tickets必须是整数")
+    if budget <= 0:
+        return make_error_response("budget必须大于0", "validation", "预算必须>0")
+    if max_tickets < 1 or max_tickets > 20:
+        return make_error_response("max_tickets超出范围", "validation", "最大投注单数必须在1到20之间")
     
     import random
     random.seed(42)  # 可复现
@@ -787,8 +959,15 @@ def build_mn_parlay(matches: list, mn_type: str = '3串4') -> dict:
     """
     from itertools import combinations
     
+    # 参数校验
+    if matches is None:
+        return make_error_response("matches不能为空", "validation", "请提供比赛列表")
+    if not isinstance(matches, list):
+        return make_error_response("matches必须是列表", "validation", "请提供列表类型的比赛数据")
     if len(matches) < 2:
-        return {'error': '至少需要2场比赛'}
+        return make_error_response("至少需要2场比赛", "validation", "M串N至少需要2场比赛")
+    if mn_type is None or not isinstance(mn_type, str):
+        return make_error_response("mn_type必须是字符串", "validation", "请提供有效的M串N类型字符串")
     
     # M串N定义
     mn_definitions = {
@@ -861,6 +1040,12 @@ def calculate_parlay_payout_precise(bets: list, stake_per_bet: float = 2) -> dic
     Returns:
         精确的奖金计算结果
     """
+    # 参数校验
+    if bets is None:
+        return make_error_response('bets不能为空', 'validation', '请提供bets参数')
+    if stake_per_bet is None:
+        return make_error_response('stake_per_bet不能为空', 'validation', '请提供stake_per_bet参数')
+
     total_cost = len(bets) * stake_per_bet
     total_winnings = 0
     winning_bets = 0
@@ -913,6 +1098,19 @@ def generate_bet_slip_500(tickets: list, total_cost: float = None) -> str:
     Returns:
         500.com风格的投注单文本
     """
+    # 参数校验
+    if tickets is None or not isinstance(tickets, list):
+        return make_error_response("tickets不能为空且必须是列表", "validation", "请提供投注单列表")
+    if len(tickets) == 0:
+        return {'bet_slips': [], 'total_count': 0, 'note': '暂无投注单'}
+    if total_cost is not None:
+        try:
+            total_cost = float(total_cost)
+        except (ValueError, TypeError):
+            return make_error_response("total_cost必须是数字", "validation", "总金额必须是数字类型")
+        if total_cost < 0:
+            return make_error_response("total_cost不能为负数", "validation", "总金额必须>=0")
+    
     output = []
     output.append("=" * 50)
     output.append("  竞彩足球投注单")
@@ -978,6 +1176,23 @@ def tiered_bankroll(total_bankroll: float, bets: list = None, risk_preference: s
     Returns:
         三层资金池分配、每注建议金额、风险控制指标
     """
+    # 参数校验
+    try:
+        total_bankroll = float(total_bankroll)
+    except (ValueError, TypeError):
+        return make_error_response("total_bankroll必须是数字", "validation", "总资金必须是数字类型")
+    if total_bankroll <= 0:
+        return make_error_response("total_bankroll必须大于0", "validation", "总资金必须>0")
+    if bets is not None and not isinstance(bets, list):
+        return make_error_response("bets必须是列表", "validation", "投注列表必须是列表类型")
+    if risk_preference is None:
+        risk_preference = 'balanced'
+    if not isinstance(risk_preference, str):
+        return make_error_response("risk_preference必须是字符串", "validation", "风险偏好必须是字符串")
+    valid_preferences = ['conservative', 'balanced', 'aggressive']
+    if risk_preference not in valid_preferences:
+        return make_error_response(f"risk_preference必须是{valid_preferences}之一", "validation", "请提供有效的风险偏好")
+    
     # 风险偏好调整比例
     if risk_preference == 'conservative':
         conservative_ratio = 0.70
@@ -1099,6 +1314,16 @@ def cross_play_hedge(value_options: list) -> dict:
     Returns:
         对冲组合识别、推荐对冲结构、风险降低分析
     """
+    # 参数校验
+    if value_options is None or not isinstance(value_options, list):
+        return make_error_response("value_options不能为空且必须是列表", "validation", "请提供价值选项列表")
+    if len(value_options) == 0:
+        return {'hedge_combinations': [], 'note': '无价值选项，无法识别对冲结构'}
+    # 验证每个选项都是字典
+    for i, opt in enumerate(value_options):
+        if not isinstance(opt, dict):
+            return make_error_response(f"第{i+1}个选项必须是字典", "validation", "价值选项必须是字典类型，包含match_id/play_type/selection/odds/model_prob")
+    
     # 按比赛分组
     matches = {}
     for opt in value_options:
@@ -1227,14 +1452,22 @@ def build_full_portfolio(
     5. generate_bet_slip → 500.com手机端风格标准投注单
     
     Args:
-        value_options: 价值选项列表，每个元素包含：match(比赛), play(玩法), option(选项), odds(赔率), prob(概率), ev(EV), confidence(置信度)
+        value_options: 价值选项列表
         total_budget: 总预算（元），默认200
-        risk_preference: 风险偏好 conservative(保守)/balanced(平衡)/aggressive(激进)
-        play_preference: 玩法偏好 all(全部)/spf(胜平负)/hhad(让球)/ttg(总进球)/crs(比分)/hafu(半全场)
+        risk_preference: 风险偏好 conservative/balanced/aggressive
+        play_preference: 玩法偏好 all/spf/hhad/ttg/crs/hafu
     
     Returns:
         完整投注组合：投注单列表+资金分配+保本分析+最高奖金+标准投注单格式
     """
+    # 参数校验
+    if value_options is None:
+        return make_error_response('value_options不能为空', 'validation', '请提供value_options参数')
+    if total_budget is None:
+        return make_error_response('total_budget不能为空', 'validation', '请提供total_budget参数')
+    if risk_preference is None:
+        return make_error_response('risk_preference不能为空', 'validation', '请提供risk_preference参数')
+    
     result = {
         'tools_called': ['auto_select_mn', 'calc_parlay_payout', 'build_hedge_structure', 
                          'bankroll_management', 'generate_bet_slip'],
@@ -1311,7 +1544,10 @@ def build_full_portfolio(
         mod_matches = list(set(opt['match'] for opt in moderate))[:4]
         mod_picks = [opt for opt in moderate if opt['match'] in mod_matches]
         if len(mod_picks) >= 3:
-            mn_type = f'{n_matches}串{int(2**n_matches - 1)}' if len(mod_picks) <= 4 else '4串11'
+            n_matches = min(len(mod_picks), 4)
+            # M串N注数公式：N = 2^M - M - 1（3串4=4注，4串11=11注）
+            mn_count = (2 ** n_matches - n_matches - 1) if n_matches >= 3 else 1
+            mn_type = f'{n_matches}串{mn_count}' if n_matches <= 4 else '4串11'
             odds_product = 1.0
             for opt in mod_picks[:4]:
                 odds_product *= opt.get('odds', 1.0)
@@ -1406,6 +1642,71 @@ def build_full_portfolio(
     
     return result
 
+
+@mcp.tool()
+def record_bet_slip(bet_slips: list, session_date: str = None, notes: str = '') -> dict:
+    """
+    投注单入库：将投注单保存到data/decisions/目录，用于赛后结算和复盘
+    
+    Args:
+        bet_slips: 投注单列表，每张投注单包含match_id/play/option/odds/stake等字段
+        session_date: 期号日期（YYYY-MM-DD），默认今天
+        notes: 备注信息（分析思路、风险提示等）
+    
+    Returns:
+        dict: 保存结果（bet_slip_id, file_path, saved_count, total_stake）
+    """
+    import os
+    import json
+    from datetime import datetime
+    
+    # 确定插件根目录（servers/portfolio/ → 插件根）
+    server_dir = os.path.dirname(os.path.abspath(__file__))
+    plugin_root = os.path.dirname(os.path.dirname(server_dir))
+    decisions_dir = os.path.join(plugin_root, 'data', 'decisions')
+    
+    # 创建目录
+    os.makedirs(decisions_dir, exist_ok=True)
+    
+    # 确定日期
+    if not session_date:
+        session_date = datetime.now().strftime('%Y-%m-%d')
+    
+    # 生成投注单ID：日期+时间戳
+    timestamp = datetime.now().strftime('%H%M%S')
+    bet_slip_id = f'{session_date}_{timestamp}'
+    
+    # 计算总投入
+    total_stake = sum(slip.get('stake', 2) for slip in bet_slips)
+    
+    # 构建入库数据
+    record = {
+        'bet_slip_id': bet_slip_id,
+        'session_date': session_date,
+        'created_at': datetime.now().isoformat(),
+        'notes': notes,
+        'total_stake': total_stake,
+        'ticket_count': len(bet_slips),
+        'bet_slips': bet_slips,
+        'status': 'pending',  # pending: 待结算, settled: 已结算, reviewed: 已复盘
+        'settlement': None,
+        'review': None,
+        'lessons': [],
+    }
+    
+    # 保存文件
+    file_path = os.path.join(decisions_dir, f'{bet_slip_id}.json')
+    with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(record, f, ensure_ascii=False, indent=2)
+    
+    return {
+        'success': True,
+        'bet_slip_id': bet_slip_id,
+        'file_path': file_path,
+        'saved_count': len(bet_slips),
+        'total_stake': total_stake,
+        'message': f'投注单已入库：{bet_slip_id}，共{len(bet_slips)}张，总投入{total_stake}元',
+    }
 
 
 if __name__ == '__main__':

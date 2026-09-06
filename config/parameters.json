@@ -1,0 +1,122 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-09-07 01:52:05",
+  "description": "竞彩足球插件全局参数配置文件，所有硬编码参数统一管理，支持运行时更新和自校准",
+  "play_specific": {
+    "胜平负": {
+      "ev_threshold": 0.05,
+      "kelly_fraction": 0.25,
+      "max_parlay_length": 8,
+      "option_count": 3,
+      "low_prob_threshold": 0.15,
+      "description": "基础玩法，数据最充分，返奖率最高"
+    },
+    "让球胜平负": {
+      "ev_threshold": 0.05,
+      "kelly_fraction": 0.2,
+      "max_parlay_length": 8,
+      "option_count": 3,
+      "low_prob_threshold": 0.15,
+      "rangqiu_draw_odds_threshold": 3.5,
+      "rangqiu_draw_prob_threshold": 0.25,
+      "description": "竞彩特有，让平专项价值高"
+    },
+    "总进球": {
+      "ev_threshold": 0.07,
+      "kelly_fraction": 0.2,
+      "max_parlay_length": 6,
+      "option_count": 8,
+      "low_prob_threshold": 0.1,
+      "concentration_threshold": 0.55,
+      "description": "大小球验证，档位集中度"
+    },
+    "比分": {
+      "ev_threshold": 0.15,
+      "kelly_fraction": 0.03,
+      "max_parlay_length": 4,
+      "option_count": 31,
+      "low_prob_threshold": 0.03,
+      "double_lock_direction_prob": 0.5,
+      "double_lock_tg_concentration": 0.55,
+      "description": "高赔博冷，双锁定硬条件"
+    },
+    "半全场": {
+      "ev_threshold": 0.12,
+      "kelly_fraction": 0.05,
+      "max_parlay_length": 4,
+      "option_count": 9,
+      "low_prob_threshold": 0.05,
+      "comeback_penalty": 0.5,
+      "description": "逆转专项，比赛节奏分析"
+    }
+  },
+  "composite_scoring": {
+    "ev_weight": 0.4,
+    "play_fitness_weight": 0.3,
+    "model_confidence_weight": 0.2,
+    "odds_reasonableness_weight": 0.1,
+    "description": "最佳玩法多维度综合评分权重"
+  },
+  "historical_calibration": {
+    "shrinkage_total_goals": 0.5,
+    "shrinkage_score": 0.5,
+    "shrinkage_banquanchang": 0.6,
+    "low_prob_penalty": 0.7,
+    "very_low_prob_penalty": 0.6,
+    "comeback_option_penalty": 0.5,
+    "description": "历史数据校准参数，贝叶斯收缩力度"
+  },
+  "payout_rate": {
+    "default": 0.73,
+    "low_prob": 0.65,
+    "very_low_prob": 0.6,
+    "score_play": 0.65,
+    "banquanchang_play": 0.6,
+    "comeback_option": 0.5,
+    "description": "竞彩返奖率校准，低概率选项抽水更重"
+  },
+  "portfolio": {
+    "min_tickets": 1,
+    "max_tickets": 8,
+    "default_budget": 100,
+    "min_stake": 2,
+    "max_single_stake_ratio": 0.3,
+    "hedge_ratio": {
+      "stable": 0.5,
+      "hedge": 0.3,
+      "longshot": 0.2
+    },
+    "description": "投注组合参数，动态范围而非固定值"
+  },
+  "mixed_parlay": {
+    "max_play_ratio": 0.5,
+    "min_ev": 0.05,
+    "min_confidence": 0.5,
+    "odds_range_min": 1.2,
+    "odds_range_max": 15.0,
+    "description": "混合过关木桶原则校验参数"
+  },
+  "self_evolution": {
+    "min_samples_for_calibration": 100,
+    "lesson_weight_decay": 0.95,
+    "max_lessons_stored": 500,
+    "auto_calibration_enabled": true,
+    "description": "自进化闭环参数"
+  },
+  "data_persistence": {
+    "save_odds_snapshots": true,
+    "save_match_info": true,
+    "save_third_party_odds": true,
+    "save_settlement_results": true,
+    "retention_days": 365,
+    "description": "数据持久化开关"
+  },
+  "llm_collaboration": {
+    "script_decision_weight": 0.6,
+    "llm_decision_weight": 0.4,
+    "llm_adjustment_range": 0.2,
+    "require_llm_reasoning": true,
+    "require_data_completeness_check": true,
+    "description": "LLM与脚本协作参数，最终决策由两者共同完成"
+  }
+}

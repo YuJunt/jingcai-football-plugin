@@ -1,0 +1,44 @@
+[
+  {
+    "timestamp": "2026-09-07T01:37:37.105955",
+    "category": "portfolio",
+    "updates": {
+      "default_budget": 200
+    },
+    "before": {
+      "default_budget": 100
+    },
+    "after": {
+      "default_budget": 200
+    },
+    "reason": "测试更新默认预算"
+  },
+  {
+    "timestamp": "2026-09-07T01:52:05.910616",
+    "category": "portfolio",
+    "updates": {
+      "default_budget": 500
+    },
+    "before": {
+      "default_budget": 200
+    },
+    "after": {
+      "default_budget": 500
+    },
+    "reason": "单元测试更新"
+  },
+  {
+    "timestamp": "2026-09-07T01:52:06.001639",
+    "category": "portfolio",
+    "updates": {
+      "default_budget": 100
+    },
+    "before": {
+      "default_budget": 500
+    },
+    "after": {
+      "default_budget": 100
+    },
+    "reason": "恢复原值"
+  }
+]

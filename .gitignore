@@ -7,16 +7,34 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+*.egg
 
-# 数据缓存
+# 虚拟环境
+venv/
+env/
+.venv/
+
+# 个人数据（不纳入版本控制，包含隐私信息）
+data/decisions/
+data/account/
+data/persistence/
 data/cache/
 data/downloads/
-data/odds_snapshots/
 data/sessions/
 data/self-evolution/
+data/odds_snapshots/
 
 # 输出
 output/
+
+# 备份文件
+*.backup
+*.backup2
+*.bak
+
+# 测试报告
+tests/*_report.json
+tests/test_summary.json
 
 # IDE
 .vscode/
@@ -27,3 +45,11 @@ output/
 # 系统
 .DS_Store
 Thumbs.db
+
+# 日志
+*.log
+logs/
+
+# 临时文件
+*.tmp
+*.temp

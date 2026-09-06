@@ -10,6 +10,10 @@ import os
 import sys
 from datetime import datetime
 
+# 统一错误处理
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'common'))
+from error_handler import safe_tool, make_error_response, make_success_response
+
 PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(PLUGIN_ROOT, 'data')
 
@@ -30,6 +34,14 @@ def generate_news_search_keywords(home_team: str, away_team: str, league: str = 
     生成8大资讯的搜索关键词
     LLM用这些关键词调用general_search获取资讯后，再用parse_news_text解析
     """
+    # 参数校验
+    if home_team is None:
+        return make_error_response('home_team不能为空', 'validation', '请提供home_team参数')
+    if away_team is None:
+        return make_error_response('away_team不能为空', 'validation', '请提供away_team参数')
+    if league is None:
+        return make_error_response('league不能为空', 'validation', '请提供league参数')
+
     keywords = {
         '赛事前瞻': f"{home_team} {away_team} 赛前分析 预测 首发",
         '特征分析': f"{home_team} {away_team} 战术分析 打法特点",
@@ -57,6 +69,14 @@ def parse_news_text(news_text: str, home_team: str, away_team: str) -> dict:
     解析资讯文本，提取结构化信息
     LLM用general_search获取资讯文本后，调用此工具解析
     """
+    # 参数校验
+    if news_text is None:
+        return make_error_response('news_text不能为空', 'validation', '请提供news_text参数')
+    if home_team is None:
+        return make_error_response('home_team不能为空', 'validation', '请提供home_team参数')
+    if away_team is None:
+        return make_error_response('away_team不能为空', 'validation', '请提供away_team参数')
+
     result = {
         'home_team': home_team,
         'away_team': away_team,
@@ -124,6 +144,16 @@ def quantify_injury_impact(injuries: dict, home_team: str, away_team: str) -> di
     输入：parse_news_text返回的injuries字段
     输出：伤停影响评分（0-100）和λ调整建议
     """
+    # 参数校验
+    if injuries is None:
+        injuries = {}
+    if not isinstance(injuries, dict):
+        return {'error': 'injuries必须是字典', 'home_impact': 0, 'away_impact': 0}
+    if not home_team or not isinstance(home_team, str):
+        return {'error': 'home_team不能为空且必须是字符串', 'home_impact': 0, 'away_impact': 0}
+    if not away_team or not isinstance(away_team, str):
+        return {'error': 'away_team不能为空且必须是字符串', 'home_impact': 0, 'away_impact': 0}
+    
     home_injuries = injuries.get('home', []) if isinstance(injuries, dict) else []
     away_injuries = injuries.get('away', []) if isinstance(injuries, dict) else []
     
@@ -175,6 +205,27 @@ def analyze_motivation(home_team: str, away_team: str, league: str = "",
     战意分析
     根据联赛排名、赛季阶段、杯赛重要性分析双方战意
     """
+    # 参数校验
+    if not home_team or not isinstance(home_team, str):
+        return {'error': 'home_team不能为空且必须是字符串', 'motivation': {'home': 50, 'away': 50}}
+    if not away_team or not isinstance(away_team, str):
+        return {'error': 'away_team不能为空且必须是字符串', 'motivation': {'home': 50, 'away': 50}}
+    if league is not None and not isinstance(league, str):
+        return {'error': 'league必须是字符串', 'motivation': {'home': 50, 'away': 50}}
+    try:
+        home_position = int(home_position)
+        away_position = int(away_position)
+    except (ValueError, TypeError):
+        return {'error': 'home_position和away_position必须是整数', 'motivation': {'home': 50, 'away': 50}}
+    if home_position < 0:
+        home_position = 0
+    if away_position < 0:
+        away_position = 0
+    if stage is None:
+        stage = 'regular'
+    if not isinstance(stage, str):
+        return {'error': 'stage必须是字符串', 'motivation': {'home': 50, 'away': 50}}
+    
     motivation = {'home': 50, 'away': 50}  # 基础战意50
     
     # 赛季阶段影响
@@ -243,6 +294,14 @@ def analyze_fixture_congestion(team: str, recent_matches: list = None, days_rest
     赛程疲劳分析
     计算球队近期比赛间隔和疲劳程度
     """
+    # 参数校验
+    if team is None:
+        return make_error_response('team不能为空', 'validation', '请提供team参数')
+    if recent_matches is None:
+        return make_error_response('recent_matches不能为空', 'validation', '请提供recent_matches参数')
+    if days_rest is None:
+        return make_error_response('days_rest不能为空', 'validation', '请提供days_rest参数')
+
     if not recent_matches:
         return {
             'success': True,
@@ -290,6 +349,14 @@ def news_to_lambda_mapping(injury_impact: dict = None, motivation: dict = None,
     资讯→λ调整因子自动映射
     整合伤停/战意/赛程疲劳，输出最终的λ调整建议
     """
+    # 参数校验（可选参数，只做类型检查）
+    if injury_impact is not None and not isinstance(injury_impact, dict):
+        return make_error_response('injury_impact类型错误', 'validation', '请提供字典类型')
+    if motivation is not None and not isinstance(motivation, dict):
+        return make_error_response('motivation类型错误', 'validation', '请提供字典类型')
+    if fixture_congestion is not None and not isinstance(fixture_congestion, dict):
+        return make_error_response('fixture_congestion类型错误', 'validation', '请提供字典类型')
+    
     home_lambda = base_home_lambda
     away_lambda = base_away_lambda
     adjustments = []
@@ -341,22 +408,47 @@ def aggregate_news_intelligence(home_team: str, away_team: str, league: str = ""
     整合：资讯解析→伤停量化→战意分析→赛程疲劳→λ调整映射
     LLM用general_search获取news_text后，调用此工具获得完整资讯分析
     """
-    # 1. 解析资讯
-    parsed = parse_news_text(news_text, home_team, away_team) if news_text else {'data': {'injuries': {'home': [], 'away': []}}}
+    # 参数校验
+    if not home_team or not isinstance(home_team, str):
+        return {'error': 'home_team不能为空且必须是字符串', 'success': False}
+    if not away_team or not isinstance(away_team, str):
+        return {'error': 'away_team不能为空且必须是字符串', 'success': False}
+    if league is not None and not isinstance(league, str):
+        return {'error': 'league必须是字符串', 'success': False}
+    if news_text is not None and not isinstance(news_text, str):
+        return {'error': 'news_text必须是字符串', 'success': False}
+    try:
+        home_position = int(home_position)
+        away_position = int(away_position)
+        days_rest_home = int(days_rest_home)
+        days_rest_away = int(days_rest_away)
+    except (ValueError, TypeError):
+        return {'error': '位置和休息天数必须是整数', 'success': False}
+    if home_position < 0:
+        home_position = 0
+    if away_position < 0:
+        away_position = 0
+    if days_rest_home < 0:
+        days_rest_home = 0
+    if days_rest_away < 0:
+        days_rest_away = 0
+    
+    # 1. 解析资讯（FunctionTool需要用.fn()调用）
+    parsed = parse_news_text.fn(news_text=news_text, home_team=home_team, away_team=away_team) if news_text else {'data': {'injuries': {'home': [], 'away': []}}}
     parsed_data = parsed.get('data', {})
     
-    # 2. 伤停量化
-    injury = quantify_injury_impact(parsed_data.get('injuries', {}), home_team, away_team)
+    # 2. 伤停量化（FunctionTool需要用.fn()调用）
+    injury = quantify_injury_impact.fn(injuries=parsed_data.get('injuries', {}), home_team=home_team, away_team=away_team)
     
-    # 3. 战意分析
-    mot = analyze_motivation(home_team, away_team, league, home_position, away_position)
+    # 3. 战意分析（FunctionTool需要用.fn()调用）
+    mot = analyze_motivation.fn(home_team=home_team, away_team=away_team, league=league, home_position=home_position, away_position=away_position)
     
-    # 4. 赛程疲劳
-    fatigue_home = analyze_fixture_congestion(home_team, days_rest=days_rest_home)
-    fatigue_away = analyze_fixture_congestion(away_team, days_rest=days_rest_away)
+    # 4. 赛程疲劳（FunctionTool需要用.fn()调用）
+    fatigue_home = analyze_fixture_congestion.fn(team=home_team, days_rest=days_rest_home)
+    fatigue_away = analyze_fixture_congestion.fn(team=away_team, days_rest=days_rest_away)
     
-    # 5. λ调整映射
-    lambda_map = news_to_lambda_mapping(
+    # 5. λ调整映射（FunctionTool需要用.fn()调用）
+    lambda_map = news_to_lambda_mapping.fn(
         injury_impact=injury.get('data'),
         motivation=mot.get('data'),
         fixture_congestion=fatigue_home.get('data'),

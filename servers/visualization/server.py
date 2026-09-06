@@ -6,7 +6,12 @@
 """
 import json
 import os
+import sys
 from datetime import datetime
+
+# 统一错误处理
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'common'))
+from error_handler import safe_tool, make_error_response, make_success_response
 
 PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUTPUT_DIR = os.path.join(PLUGIN_ROOT, 'output')
@@ -32,6 +37,18 @@ def generate_odds_trend_chart(match_id: str, home_team: str, away_team: str,
     生成赔率走势图（HTML+ECharts）
     odds_history: [{'time': '2026-09-06 10:00', 'home': 1.5, 'draw': 3.8, 'away': 5.0}, ...]
     """
+    # 参数校验
+    if not match_id or not isinstance(match_id, str):
+        return {'error': 'match_id不能为空且必须是字符串', 'success': False}
+    if not home_team or not isinstance(home_team, str):
+        return {'error': 'home_team不能为空且必须是字符串', 'success': False}
+    if not away_team or not isinstance(away_team, str):
+        return {'error': 'away_team不能为空且必须是字符串', 'success': False}
+    if odds_history is not None and not isinstance(odds_history, list):
+        return {'error': 'odds_history必须是列表', 'success': False}
+    if date is not None and not isinstance(date, str):
+        return {'error': 'date必须是字符串', 'success': False}
+    
     _ensure_output()
     if not odds_history:
         odds_history = [
@@ -80,6 +97,20 @@ def generate_probability_radar(match_id: str, home_team: str, away_team: str,
     生成概率分布雷达图
     probabilities: {'胜平负': {'主胜': 0.6, '平局': 0.25, '客胜': 0.15}, '总进球': {...}, ...}
     """
+    # 参数校验
+    if not match_id or not isinstance(match_id, str):
+        return {'error': 'match_id不能为空且必须是字符串', 'success': False}
+    if not home_team or not isinstance(home_team, str):
+        return {'error': 'home_team不能为空且必须是字符串', 'success': False}
+    if not away_team or not isinstance(away_team, str):
+        return {'error': 'away_team不能为空且必须是字符串', 'success': False}
+    if probabilities is None:
+        probabilities = {}
+    if not isinstance(probabilities, dict):
+        return {'error': 'probabilities必须是字典', 'success': False}
+    if date is not None and not isinstance(date, str):
+        return {'error': 'date必须是字符串', 'success': False}
+    
     _ensure_output()
     
     indicators = []
@@ -119,6 +150,12 @@ def generate_payout_matrix(bet_slips: list, date: str = "") -> dict:
     生成投注组合收益矩阵图
     bet_slips: [{'name': '稳单', 'cost': 100, 'scenarios': [{'name': '全中', 'payout': 500}, ...]}, ...]
     """
+    # 参数校验
+    if bet_slips is None:
+        return make_error_response('bet_slips不能为空', 'validation', '请提供bet_slips参数')
+    if date is None:
+        return make_error_response('date不能为空', 'validation', '请提供date参数')
+
     _ensure_output()
     
     slip_names = [s['name'] for s in bet_slips]
@@ -162,6 +199,12 @@ def generate_hit_rate_trend(history: list, date: str = "") -> dict:
     生成历史命中率趋势图
     history: [{'date': '2026-09-01', 'play': '胜平负', 'hit_rate': 0.6, 'roi': 0.1}, ...]
     """
+    # 参数校验
+    if history is None:
+        return make_error_response('history不能为空', 'validation', '请提供history参数')
+    if date is None:
+        return make_error_response('date不能为空', 'validation', '请提供date参数')
+
     _ensure_output()
     
     dates = sorted(set(h['date'] for h in history))
@@ -204,6 +247,12 @@ def generate_interactive_report(matches: list, analysis_results: list,
     生成完整的HTML交互式分析报告
     整合：比赛概览+概率分析+投注方案+可视化图表
     """
+    # 参数校验
+    if matches is None:
+        return make_error_response('matches不能为空', 'validation', '请提供matches参数')
+    if analysis_results is None:
+        return make_error_response('analysis_results不能为空', 'validation', '请提供analysis_results参数')
+    
     _ensure_output()
     
     # 比赛概览表格
@@ -276,6 +325,12 @@ def generate_ev_distribution_chart(value_options: list, date: str = "") -> dict:
     生成EV分布柱状图
     value_options: [{'match': '001', 'play': '胜平负', 'option': '主胜', 'ev': 0.15, 'odds': 1.8}, ...]
     """
+    # 参数校验
+    if value_options is None:
+        return make_error_response('value_options不能为空', 'validation', '请提供value_options参数')
+    if date is None:
+        return make_error_response('date不能为空', 'validation', '请提供date参数')
+
     _ensure_output()
     
     labels = [f"{v.get('match','')}-{v.get('play','')}-{v.get('option','')}" for v in value_options[:20]]

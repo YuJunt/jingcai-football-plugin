@@ -43,6 +43,16 @@ def generate_full_play_analysis_report(matches: list, analysis_results: list = N
     Returns:
         全玩法分析报告Markdown文本
     """
+    # 参数校验
+    if matches is None or not isinstance(matches, list):
+        return make_error_response("matches不能为空且必须是列表", "validation", "请提供比赛列表")
+    if len(matches) == 0:
+        return "# 竞彩足球全玩法分析报告\n\n无比赛数据"
+    if analysis_results is not None and not isinstance(analysis_results, list):
+        return make_error_response("analysis_results必须是列表", "validation", "分析结果必须是列表类型")
+    if date is not None and not isinstance(date, str):
+        return make_error_response("date必须是字符串", "validation", "日期必须是字符串类型")
+    
     if not date:
         date = datetime.now().strftime('%Y-%m-%d')
     
@@ -100,7 +110,7 @@ def generate_full_play_analysis_report(matches: list, analysis_results: list = N
                             'option': opt.get('option'),
                             'odds': opt.get('odds'),
                             'ev': opt.get('ev'),
-                            'model_prob': opt.get('model_prob')
+                            'model_prob': opt.get('model_prob', opt.get('prob', 0))
                         })
         
         value_options.sort(key=lambda x: x.get('ev', 0), reverse=True)
@@ -149,7 +159,7 @@ def generate_full_play_analysis_report(matches: list, analysis_results: list = N
                     for ar in analysis_results:
                         if ar.get('match_id') == match_id and play_name in ar.get('plays', {}):
                             for opt in ar['plays'][play_name].get('options', []):
-                                model_probs.append(opt.get('model_prob', 0))
+                                model_probs.append(opt.get('model_prob', opt.get('prob', 0)))
                                 evs.append(opt.get('ev', 0))
                             break
                 
@@ -212,6 +222,16 @@ def generate_analysis_report_nine_step(matches: list, ensemble_results: dict = N
     Returns:
         九步结构化分析报告Markdown文本
     """
+    # 参数校验
+    if matches is None:
+        return make_error_response('matches不能为空', 'validation', '请提供matches参数')
+    if ensemble_results is None:
+        return make_error_response('ensemble_results不能为空', 'validation', '请提供ensemble_results参数')
+    if play_specific_results is None:
+        return make_error_response('play_specific_results不能为空', 'validation', '请提供play_specific_results参数')
+    if date is None:
+        return make_error_response('date不能为空', 'validation', '请提供date参数')
+
     if not date:
         date = datetime.now().strftime('%Y-%m-%d')
     
@@ -305,6 +325,14 @@ def generate_data_report_pure(matches: list, third_party_data: list = None, date
     Returns:
         纯数据报告Markdown文本
     """
+    # 参数校验
+    if matches is None or not isinstance(matches, list):
+        return make_error_response("matches不能为空且必须是列表", "validation", "请提供比赛列表")
+    if len(matches) == 0:
+        return "# 竞彩足球数据报告\n\n无比赛数据"
+    if third_party_data is not None and not isinstance(third_party_data, list):
+        return make_error_response("third_party_data必须是列表", "validation", "第三方数据必须是列表类型")
+    
     if not date:
         date = datetime.now().strftime('%Y-%m-%d')
     
@@ -396,6 +424,19 @@ def standardize_output(analysis_report: str = None, bet_slips: list = None, outp
     Returns:
         标准化输出结果
     """
+    # 参数校验
+    if analysis_report is not None and not isinstance(analysis_report, str):
+        return make_error_response("analysis_report必须是字符串", "validation", "分析报告必须是字符串类型")
+    if bet_slips is not None and not isinstance(bet_slips, list):
+        return make_error_response("bet_slips必须是列表", "validation", "投注单必须是列表类型")
+    if output_type is None:
+        output_type = 'all'
+    if not isinstance(output_type, str):
+        return make_error_response("output_type必须是字符串", "validation", "输出类型必须是字符串")
+    valid_types = ['report', 'bets', 'all']
+    if output_type not in valid_types:
+        return make_error_response(f"output_type必须是{valid_types}之一", "validation", "请提供有效的输出类型")
+    
     result = {'output_type': output_type, 'generated_at': datetime.now().isoformat()}
     
     if output_type in ['report', 'all'] and analysis_report:
@@ -428,6 +469,14 @@ def generate_visualization_html(matches: list, analysis_results: list = None, da
     Returns:
         HTML可视化报告文本
     """
+    # 参数校验
+    if matches is None:
+        return make_error_response('matches不能为空', 'validation', '请提供matches参数')
+    if analysis_results is None:
+        return make_error_response('analysis_results不能为空', 'validation', '请提供analysis_results参数')
+    if date is None:
+        return make_error_response('date不能为空', 'validation', '请提供date参数')
+
     if not date:
         date = datetime.now().strftime('%Y-%m-%d')
     

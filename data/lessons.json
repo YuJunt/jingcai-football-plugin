@@ -1007,7 +1007,322 @@
       "created_at": "2026-09-06T18:47:29.236179",
       "usage_count": 0,
       "success_count": 0
+    },
+    {
+      "id": "L0112",
+      "lesson": "工作流测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T18:51:19.092716",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0113",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T18:51:19.190858",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0114",
+      "lesson": "工作流测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T19:00:23.742303",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0115",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T19:00:23.834822",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0116",
+      "lesson": "工作流测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T19:02:08.748157",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0117",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T19:02:08.839139",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0118",
+      "lesson": "工作流测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T19:10:51.544102",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0119",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T19:10:51.622485",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0120",
+      "lesson": "工作流测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T19:12:02.792540",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0121",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T19:12:02.872303",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0122",
+      "lesson": "工作流测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T19:16:45.728675",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0123",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T19:16:45.836686",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0124",
+      "lesson": "工作流测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T19:21:56.376727",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0125",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T19:21:56.469857",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0126",
+      "lesson": "工作流测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T19:25:39.191834",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0127",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T19:25:39.286104",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0128",
+      "lesson": "工作流测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T19:39:49.034639",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0129",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T19:39:49.110481",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0130",
+      "lesson": "工作流测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T19:50:31.013399",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0131",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T19:50:31.119744",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0132",
+      "lesson": "工作流测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T19:52:29.827673",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0133",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T19:52:29.953315",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0134",
+      "lesson": "工作流测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T20:03:50.510725",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0135",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T20:03:50.657156",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0136",
+      "lesson": "工作流测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T20:06:32.878047",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0137",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T20:06:32.969279",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0138",
+      "lesson": "工作流测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T20:08:06.783953",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0139",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T20:08:06.882362",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0140",
+      "lesson": "工作流测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T20:10:10.736187",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0141",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T20:10:10.854832",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0142",
+      "lesson": "工作流测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T20:25:43.243608",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0143",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T20:25:43.328055",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0144",
+      "lesson": null,
+      "category": null,
+      "weight": null,
+      "created_at": "2026-09-06T21:03:20.820058",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0145",
+      "lesson": "测试经验教训",
+      "category": "数据分析",
+      "weight": 1.5,
+      "created_at": "2026-09-06T22:26:03.467899",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0146",
+      "lesson": "测试经验教训",
+      "category": "数据分析",
+      "weight": 1.5,
+      "created_at": "2026-09-06T22:51:13.338434",
+      "usage_count": 0,
+      "success_count": 0
     }
   ],
-  "next_id": 112
+  "next_id": 147
 }

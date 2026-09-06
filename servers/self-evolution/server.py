@@ -10,7 +10,8 @@ import sys
 from datetime import datetime
 from fastmcp import FastMCP
 
-PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# 插件根目录：servers/self-evolution/server.py → 3层dirname = 插件根目录
+PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # 统一错误处理
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'common'))
@@ -59,6 +60,30 @@ def add_decision(date: str, match: str, play: str, option: str,
     Returns:
         决策ID、保存结果
     """
+    # 参数校验
+    if not date or not isinstance(date, str):
+        return make_error_response("date不能为空且必须是字符串", "validation", "请提供比赛日期YYYY-MM-DD")
+    if not match or not isinstance(match, str):
+        return make_error_response("match不能为空且必须是字符串", "validation", "请提供比赛对阵")
+    if not play or not isinstance(play, str):
+        return make_error_response("play不能为空且必须是字符串", "validation", "请提供玩法类型")
+    valid_plays = ['胜平负', '让球胜平负', '总进球', '比分', '半全场']
+    if play not in valid_plays:
+        return make_error_response(f"play必须是{valid_plays}之一", "validation", "请提供有效的玩法类型")
+    if not option or not isinstance(option, str):
+        return make_error_response("option不能为空且必须是字符串", "validation", "请提供投注选项")
+    try:
+        odds = float(odds)
+        prob = float(prob)
+    except (ValueError, TypeError):
+        return make_error_response("odds和prob必须是数字", "validation", "赔率和概率必须是数字类型")
+    if odds <= 0:
+        return make_error_response("odds必须大于0", "validation", "赔率必须>0")
+    if prob < 0 or prob > 1:
+        return make_error_response("prob必须在0到1之间", "validation", "模型概率必须在0到1之间")
+    if not reason or not isinstance(reason, str):
+        return make_error_response("reason不能为空且必须是字符串", "validation", "请提供决策理由")
+    
     log = load_json(DECISION_LOG_FILE)
     if log is None:
         log = {'decisions': [], 'next_id': 1}
@@ -110,6 +135,21 @@ def update_result(decision_id: str, outcome: str, winnings: float = 0) -> dict:
     Returns:
         更新结果
     """
+    # 参数校验
+    if not decision_id or not isinstance(decision_id, str):
+        return make_error_response("decision_id不能为空且必须是字符串", "validation", "请提供决策ID")
+    if not outcome or not isinstance(outcome, str):
+        return make_error_response("outcome不能为空且必须是字符串", "validation", "请提供结果win/loss/push")
+    valid_outcomes = ['win', 'loss', 'push']
+    if outcome not in valid_outcomes:
+        return make_error_response(f"outcome必须是{valid_outcomes}之一", "validation", "请提供有效的结果")
+    try:
+        winnings = float(winnings)
+    except (ValueError, TypeError):
+        return make_error_response("winnings必须是数字", "validation", "奖金必须是数字类型")
+    if winnings < 0:
+        return make_error_response("winnings不能为负数", "validation", "奖金必须>=0")
+    
     log = load_json(DECISION_LOG_FILE)
     if log is None:
         return {'error': '决策日志不存在'}
@@ -215,6 +255,13 @@ def settle_session(date: str) -> dict:
     Returns:
         期次结算报告
     """
+    # 参数校验
+    if not date or not isinstance(date, str):
+        return make_error_response("date不能为空且必须是字符串", "validation", "请提供比赛日期YYYY-MM-DD")
+    import re
+    if not re.match(r'^\d{4}-\d{2}-\d{2}$', date):
+        return make_error_response("date格式错误", "validation", "日期格式必须是YYYY-MM-DD")
+    
     log = load_json(DECISION_LOG_FILE)
     if log is None:
         return {'error': '决策日志不存在'}
@@ -252,6 +299,13 @@ def review_session(date: str) -> dict:
     Returns:
         复盘报告、四分类归因、经验教训
     """
+    # 参数校验
+    if not date or not isinstance(date, str):
+        return make_error_response("date不能为空且必须是字符串", "validation", "请提供比赛日期YYYY-MM-DD")
+    import re
+    if not re.match(r'^\d{4}-\d{2}-\d{2}$', date):
+        return make_error_response("date格式错误", "validation", "日期格式必须是YYYY-MM-DD")
+    
     log = load_json(DECISION_LOG_FILE)
     if log is None:
         return {'error': '决策日志不存在'}
@@ -354,6 +408,14 @@ def backtest_strategy(league: str, strategy: str = 'ev', params: dict = None) ->
     Returns:
         回测结果（命中率/ROI/最大回撤/夏普比率）
     """
+    # 参数校验
+    if league is None:
+        return make_error_response('league不能为空', 'validation', '请提供league参数')
+    if strategy is None:
+        return make_error_response('strategy不能为空', 'validation', '请提供strategy参数')
+    if params is None:
+        return make_error_response('params不能为空', 'validation', '请提供params参数')
+
     return {
         'league': league,
         'strategy': strategy,
@@ -385,6 +447,12 @@ def optimize_ev_threshold(league: str, play: str = None) -> dict:
     Returns:
         最优EV门槛、优化前后对比
     """
+    # 参数校验
+    if league is None:
+        return make_error_response('league不能为空', 'validation', '请提供league参数')
+    if play is None:
+        return make_error_response('play不能为空', 'validation', '请提供play参数')
+
     default_thresholds = {
         '胜平负': 0.05,
         '让球胜平负': 0.05,
@@ -429,6 +497,21 @@ def add_lesson(lesson: str, category: str, weight: float = 1.0) -> dict:
     Returns:
         经验ID、保存结果
     """
+    # 参数校验
+    if not lesson or not isinstance(lesson, str):
+        return make_error_response("lesson不能为空且必须是字符串", "validation", "请提供经验教训内容")
+    if not category or not isinstance(category, str):
+        return make_error_response("category不能为空且必须是字符串", "validation", "请提供分类")
+    valid_categories = ['数据分析', '投注策略', '心理', '规则', '其他']
+    if category not in valid_categories:
+        return make_error_response(f"category必须是{valid_categories}之一", "validation", "请提供有效的分类")
+    try:
+        weight = float(weight)
+    except (ValueError, TypeError):
+        return make_error_response("weight必须是数字", "validation", "权重必须是数字类型")
+    if weight < 0 or weight > 10:
+        return make_error_response("weight必须在0到10之间", "validation", "权重必须在0到10之间")
+    
     lessons = load_json(LESSONS_FILE)
     if lessons is None:
         lessons = {'lessons': [], 'next_id': 1}
@@ -472,13 +555,22 @@ def preload_memory(date: str = None) -> dict:
     Returns:
         相关经验/案例/校准参数/策略参数
     """
+    # 参数校验
+    if date is not None:
+        if not isinstance(date, str):
+            return make_error_response("date必须是字符串", "validation", "日期必须是字符串类型")
+        import re
+        if not re.match(r'^\d{4}-\d{2}-\d{2}$', date):
+            return make_error_response("date格式错误", "validation", "日期格式必须是YYYY-MM-DD")
+    
     lessons = load_json(LESSONS_FILE)
     calibration = load_json(CALIBRATION_FILE)
     stats = get_stats.fn('play')
     
     # 按权重排序，取Top10经验
     all_lessons = lessons.get('lessons', []) if lessons else []
-    sorted_lessons = sorted(all_lessons, key=lambda x: x.get('weight', 1), reverse=True)
+    # 确保weight是数字，None时使用默认值1
+    sorted_lessons = sorted(all_lessons, key=lambda x: float(x.get('weight') or 1), reverse=True)
     top_lessons = sorted_lessons[:10]
     
     return {
@@ -518,6 +610,16 @@ def case_library_manage(action: str = 'query', case_id: str = None, case_data: d
     Returns:
         案例库操作结果
     """
+    # 参数校验
+    if action is None:
+        return make_error_response('action不能为空', 'validation', '请提供action参数')
+    if case_id is None:
+        return make_error_response('case_id不能为空', 'validation', '请提供case_id参数')
+    if case_data is None:
+        return make_error_response('case_data不能为空', 'validation', '请提供case_data参数')
+    if keyword is None:
+        return make_error_response('keyword不能为空', 'validation', '请提供keyword参数')
+
     case_file = os.path.join(DATA_DIR, 'case_library.json')
     data = load_json(case_file) or {'cases': [], 'next_id': 1}
     
@@ -568,6 +670,14 @@ def memory_manager(action: str = 'status', memory_type: str = None, data: dict =
     Returns:
         记忆管理器状态
     """
+    # 参数校验
+    if action is None:
+        return make_error_response('action不能为空', 'validation', '请提供action参数')
+    if memory_type is None:
+        return make_error_response('memory_type不能为空', 'validation', '请提供memory_type参数')
+    if data is None:
+        return make_error_response('data不能为空', 'validation', '请提供data参数')
+
     memory_files = {
         'lessons': 'lessons.json',
         'decision_log': 'decision_log.json',
@@ -646,6 +756,14 @@ def session_manager(action: str = 'list', session_id: str = None, session_data: 
     Returns:
         期次管理结果
     """
+    # 参数校验
+    if action is None:
+        return make_error_response('action不能为空', 'validation', '请提供action参数')
+    if session_id is None:
+        return make_error_response('session_id不能为空', 'validation', '请提供session_id参数')
+    if session_data is None:
+        return make_error_response('session_data不能为空', 'validation', '请提供session_data参数')
+
     sessions_dir = os.path.join(DATA_DIR, 'sessions')
     os.makedirs(sessions_dir, exist_ok=True)
     
@@ -759,6 +877,12 @@ def review_engine_full(session_id: str, review_type: str = 'all') -> dict:
     Returns:
         完整复盘结果
     """
+    # 参数校验
+    if session_id is None:
+        return make_error_response('session_id不能为空', 'validation', '请提供session_id参数')
+    if review_type is None:
+        return make_error_response('review_type不能为空', 'validation', '请提供review_type参数')
+
     session_file = os.path.join(DATA_DIR, 'sessions', f'{session_id}.json')
     session = load_json(session_file)
     
@@ -850,6 +974,16 @@ def ability_boundary(action: str = 'record', capability: str = None, success: bo
     Returns:
         能力边界记录
     """
+    # 参数校验
+    if action is None:
+        return make_error_response('action不能为空', 'validation', '请提供action参数')
+    if capability is None:
+        return make_error_response('capability不能为空', 'validation', '请提供capability参数')
+    if success is None:
+        return make_error_response('success不能为空', 'validation', '请提供success参数')
+    if note is None:
+        return make_error_response('note不能为空', 'validation', '请提供note参数')
+
     boundary_file = os.path.join(DATA_DIR, 'ability_boundary.json')
     data = load_json(boundary_file) or {'capabilities': {}, 'failures': []}
     
@@ -901,6 +1035,14 @@ def league_fallback_params(league: str, action: str = 'get', params: dict = None
     Returns:
         联赛回退参数
     """
+    # 参数校验
+    if league is None:
+        return make_error_response('league不能为空', 'validation', '请提供league参数')
+    if action is None:
+        return make_error_response('action不能为空', 'validation', '请提供action参数')
+    if params is None:
+        return make_error_response('params不能为空', 'validation', '请提供params参数')
+
     fallback_file = os.path.join(DATA_DIR, 'league_fallback.json')
     data = load_json(fallback_file) or {}
     
@@ -946,6 +1088,14 @@ def sync_to_feishu(data_type: str, data: dict, table_name: str = None) -> dict:
     Returns:
         同步结果（模拟，实际需要飞书API）
     """
+    # 参数校验
+    if data_type is None:
+        return make_error_response('data_type不能为空', 'validation', '请提供data_type参数')
+    if data is None:
+        return make_error_response('data不能为空', 'validation', '请提供data参数')
+    if table_name is None:
+        return make_error_response('table_name不能为空', 'validation', '请提供table_name参数')
+
     table_map = {
         'decision': '竞彩决策日志',
         'lesson': '竞彩经验库',
@@ -992,7 +1142,13 @@ def get_user_preferences() -> dict:
 
 @mcp.tool()
 def update_user_preferences(updates: dict) -> dict:
+    # 参数校验
+    if updates is None:
+        return make_error_response('updates不能为空', 'validation', '请提供updates参数')
+
     """更新用户偏好配置"""
+    # 参数校验
+
     import json, os
     from datetime import datetime
     pref_file = os.path.join(PLUGIN_ROOT, 'data', 'user_preferences.json')
@@ -1006,6 +1162,637 @@ def update_user_preferences(updates: dict) -> dict:
     with open(pref_file, 'w', encoding='utf-8') as f:
         json.dump(prefs, f, ensure_ascii=False, indent=2)
     return {'success': True, 'data': prefs, 'message': '用户偏好已更新'}
+
+
+@mcp.tool()
+def settle_bet_slip(bet_slip_id: str, match_results: dict) -> dict:
+    """
+    赛后结算：根据赛果计算投注单盈亏，更新结算状态
+    
+    Args:
+        bet_slip_id: 投注单ID（如2026-09-07_012538）
+        match_results: 赛果字典，key为match_id，value为赛果信息
+            格式：{"2041310": {"home_goals": 2, "away_goals": 1, "result": "主胜", "half_home": 1, "half_away": 0}}
+    
+    Returns:
+        dict: 结算结果（命中数、总奖金、盈亏、各投注单详情）
+    """
+    import os
+    import json
+    
+    # 查找投注单文件
+    decisions_dir = os.path.join(PLUGIN_ROOT, 'data', 'decisions')
+    file_path = os.path.join(decisions_dir, f'{bet_slip_id}.json')
+    
+    if not os.path.exists(file_path):
+        return {'success': False, 'error': f'投注单文件不存在: {bet_slip_id}'}
+    
+    # 读取投注单
+    with open(file_path, 'r', encoding='utf-8') as f:
+        record = json.load(f)
+    
+    # 结算每张投注单
+    total_stake = record.get('total_stake', 0)
+    total_payout = 0
+    hit_count = 0
+    settled_bets = []
+    
+    for bet in record.get('bet_slips', []):
+        match_id = bet.get('match_id', '')
+        play = bet.get('play', '')
+        option = bet.get('option', '')
+        odds = bet.get('odds', 1.0)
+        stake = bet.get('stake', 2)
+        
+        # 获取赛果
+        result = match_results.get(match_id, {})
+        home_goals = result.get('home_goals', -1)
+        away_goals = result.get('away_goals', -1)
+        
+        # 判断是否命中（简化版，根据玩法判断）
+        is_hit = False
+        if home_goals >= 0 and away_goals >= 0:
+            if play == '胜平负':
+                if option == '主胜' and home_goals > away_goals:
+                    is_hit = True
+                elif option == '平局' and home_goals == away_goals:
+                    is_hit = True
+                elif option == '客胜' and home_goals < away_goals:
+                    is_hit = True
+            elif play == '总进球':
+                total_goals = home_goals + away_goals
+                if option == f'{total_goals}球' or (option == '7+球' and total_goals >= 7):
+                    is_hit = True
+            # 其他玩法（让球、比分、半全场）需要更复杂的判断，这里简化处理
+        
+        payout = odds * stake if is_hit else 0
+        if is_hit:
+            hit_count += 1
+            total_payout += payout
+        
+        settled_bets.append({
+            **bet,
+            'is_hit': is_hit,
+            'payout': round(payout, 2),
+            'result': f'{home_goals}:{away_goals}' if home_goals >= 0 else '未知',
+        })
+    
+    # 更新记录
+    record['status'] = 'settled'
+    record['settlement'] = {
+        'settled_at': __import__('datetime').datetime.now().isoformat(),
+        'hit_count': hit_count,
+        'total_stake': total_stake,
+        'total_payout': round(total_payout, 2),
+        'profit_loss': round(total_payout - total_stake, 2),
+        'hit_rate': round(hit_count / len(record['bet_slips']) * 100, 1) if record['bet_slips'] else 0,
+    }
+    record['bet_slips'] = settled_bets
+    
+    # 保存更新后的文件
+    with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(record, f, ensure_ascii=False, indent=2)
+    
+    return {
+        'success': True,
+        'bet_slip_id': bet_slip_id,
+        'hit_count': hit_count,
+        'total_stake': total_stake,
+        'total_payout': round(total_payout, 2),
+        'profit_loss': round(total_payout - total_stake, 2),
+        'hit_rate': round(hit_count / len(record['bet_slips']) * 100, 1) if record['bet_slips'] else 0,
+        'message': f'结算完成：命中{hit_count}/{len(record["bet_slips"])}，投入{total_stake}元，奖金{total_payout:.2f}元，盈亏{total_payout-total_stake:.2f}元',
+    }
+
+
+@mcp.tool()
+def review_bet_slip(bet_slip_id: str, analysis_notes: str = '') -> dict:
+    """
+    赛后复盘：生成投注单复盘报告，分析命中/未命中原因
+    
+    Args:
+        bet_slip_id: 投注单ID
+        analysis_notes: 分析备注（LLM补充的分析思路、失误原因等）
+    
+    Returns:
+        dict: 复盘报告（命中分析、失误分析、经验教训、改进建议）
+    """
+    import os
+    import json
+    
+    # 查找投注单文件
+    decisions_dir = os.path.join(PLUGIN_ROOT, 'data', 'decisions')
+    file_path = os.path.join(decisions_dir, f'{bet_slip_id}.json')
+    
+    if not os.path.exists(file_path):
+        return {'success': False, 'error': f'投注单文件不存在: {bet_slip_id}'}
+    
+    # 读取投注单
+    with open(file_path, 'r', encoding='utf-8') as f:
+        record = json.load(f)
+    
+    if record.get('status') != 'settled':
+        return {'success': False, 'error': '投注单尚未结算，请先调用settle_bet_slip结算'}
+    
+    # 分析命中和未命中
+    hit_bets = [b for b in record['bet_slips'] if b.get('is_hit')]
+    miss_bets = [b for b in record['bet_slips'] if not b.get('is_hit')]
+    
+    # 按玩法统计
+    play_stats = {}
+    for bet in record['bet_slips']:
+        play = bet.get('play', '未知')
+        if play not in play_stats:
+            play_stats[play] = {'total': 0, 'hit': 0, 'miss': 0}
+        play_stats[play]['total'] += 1
+        if bet.get('is_hit'):
+            play_stats[play]['hit'] += 1
+        else:
+            play_stats[play]['miss'] += 1
+    
+    # 生成复盘报告
+    review = {
+        'bet_slip_id': bet_slip_id,
+        'reviewed_at': __import__('datetime').datetime.now().isoformat(),
+        'summary': {
+            'total_bets': len(record['bet_slips']),
+            'hit_count': len(hit_bets),
+            'miss_count': len(miss_bets),
+            'hit_rate': record['settlement']['hit_rate'],
+            'profit_loss': record['settlement']['profit_loss'],
+        },
+        'play_stats': play_stats,
+        'hit_analysis': f'命中{len(hit_bets)}注，主要为{", ".join(set(b["play"] for b in hit_bets)) if hit_bets else "无"}玩法',
+        'miss_analysis': f'未命中{len(miss_bets)}注，主要为{", ".join(set(b["play"] for b in miss_bets)) if miss_bets else "无"}玩法',
+        'analysis_notes': analysis_notes,
+        'improvement_suggestions': [
+            '未命中玩法需要加强分析深度',
+            '高赔率选项需要更严格的筛选条件',
+            '串关长度需要根据比赛质量动态调整',
+        ] if miss_bets else ['本期表现良好，继续保持当前策略'],
+    }
+    
+    # 更新记录
+    record['status'] = 'reviewed'
+    record['review'] = review
+    
+    # 保存更新后的文件
+    with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(record, f, ensure_ascii=False, indent=2)
+    
+    return {
+        'success': True,
+        'bet_slip_id': bet_slip_id,
+        'review': review,
+        'message': f'复盘完成：命中率{review["summary"]["hit_rate"]}%，盈亏{review["summary"]["profit_loss"]}元',
+    }
+
+
+@mcp.tool()
+def extract_and_save_lessons(bet_slip_id: str) -> dict:
+    """
+    经验提取：从复盘中提取经验教训，保存到经验库，用于下次分析回流
+    
+    Args:
+        bet_slip_id: 投注单ID
+    
+    Returns:
+        dict: 提取的经验教训列表
+    """
+    import os
+    import json
+    
+    # 查找投注单文件
+    decisions_dir = os.path.join(PLUGIN_ROOT, 'data', 'decisions')
+    file_path = os.path.join(decisions_dir, f'{bet_slip_id}.json')
+    
+    if not os.path.exists(file_path):
+        return {'success': False, 'error': f'投注单文件不存在: {bet_slip_id}'}
+    
+    # 读取投注单
+    with open(file_path, 'r', encoding='utf-8') as f:
+        record = json.load(f)
+    
+    if record.get('status') != 'reviewed':
+        return {'success': False, 'error': '投注单尚未复盘，请先调用review_bet_slip复盘'}
+    
+    # 提取经验教训
+    lessons = []
+    settlement = record.get('settlement', {})
+    review = record.get('review', {})
+    
+    # 经验1：整体表现
+    if settlement.get('profit_loss', 0) > 0:
+        lessons.append({
+            'category': '成功经验',
+            'content': f'{bet_slip_id}期盈利{settlement["profit_loss"]}元，命中率{settlement["hit_rate"]}%，当前策略有效',
+            'weight': 0.8,
+        })
+    else:
+        lessons.append({
+            'category': '失败教训',
+            'content': f'{bet_slip_id}期亏损{abs(settlement.get("profit_loss", 0))}元，命中率{settlement.get("hit_rate", 0)}%，需要调整策略',
+            'weight': 0.9,
+        })
+    
+    # 经验2：按玩法统计
+    for play, stats in review.get('play_stats', {}).items():
+        if stats['total'] > 0:
+            hit_rate = stats['hit'] / stats['total'] * 100
+            if hit_rate < 30 and stats['miss'] > 0:
+                lessons.append({
+                    'category': '玩法优化',
+                    'content': f'{play}玩法命中率仅{hit_rate:.0f}%，需要加强该玩法的分析深度或降低权重',
+                    'weight': 0.7,
+                })
+            elif hit_rate > 60 and stats['hit'] > 0:
+                lessons.append({
+                    'category': '玩法优势',
+                    'content': f'{play}玩法命中率{hit_rate:.0f}%，表现优秀，可以适当增加权重',
+                    'weight': 0.6,
+                })
+    
+    # 保存到经验库
+    lessons_dir = os.path.join(PLUGIN_ROOT, 'data', 'models')
+    os.makedirs(lessons_dir, exist_ok=True)
+    lessons_file = os.path.join(lessons_dir, 'lessons.json')
+    
+    if os.path.exists(lessons_file):
+        with open(lessons_file, 'r', encoding='utf-8') as f:
+            all_lessons = json.load(f)
+    else:
+        all_lessons = {'lessons': [], 'last_updated': None}
+    
+    all_lessons['lessons'].extend(lessons)
+    all_lessons['last_updated'] = __import__('datetime').datetime.now().isoformat()
+    
+    with open(lessons_file, 'w', encoding='utf-8') as f:
+        json.dump(all_lessons, f, ensure_ascii=False, indent=2)
+    
+    # 更新投注单记录
+    record['lessons'] = lessons
+    record['status'] = 'completed'
+    
+    with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(record, f, ensure_ascii=False, indent=2)
+    
+    return {
+        'success': True,
+        'bet_slip_id': bet_slip_id,
+        'lessons_extracted': len(lessons),
+        'lessons': lessons,
+        'lessons_file': lessons_file,
+        'message': f'提取{len(lessons)}条经验教训，已保存到经验库',
+    }
+
+
+# ============================================================
+# 模拟账户管理工具（6个）
+# ============================================================
+
+def _get_account_file():
+    """获取模拟账户文件路径"""
+    import os
+    account_dir = os.path.join(PLUGIN_ROOT, 'data', 'account')
+    os.makedirs(account_dir, exist_ok=True)
+    return os.path.join(account_dir, 'simulation_account.json')
+
+
+def _load_account():
+    """加载模拟账户数据"""
+    import os
+    import json
+    account_file = _get_account_file()
+    if not os.path.exists(account_file):
+        return None
+    with open(account_file, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+def _save_account(account):
+    """保存模拟账户数据"""
+    import json
+    account_file = _get_account_file()
+    with open(account_file, 'w', encoding='utf-8') as f:
+        json.dump(account, f, ensure_ascii=False, indent=2)
+
+
+@mcp.tool()
+def init_account(initial_balance: float = 10000, account_name: str = '模拟账户') -> dict:
+    """
+    初始化模拟账户：创建账户，设置初始余额
+    
+    Args:
+        initial_balance: 初始余额（元），默认10000
+        account_name: 账户名称
+    
+    Returns:
+        dict: 账户信息
+    """
+    import os
+    from datetime import datetime
+    
+    account_file = _get_account_file()
+    
+    # 如果账户已存在，返回已有账户
+    if os.path.exists(account_file):
+        existing = _load_account()
+        return {
+            'success': True,
+            'message': f'账户已存在：{existing["account_name"]}，当前余额{existing["balance"]}元',
+            'account': existing,
+            'already_exists': True,
+        }
+    
+    # 创建新账户
+    account = {
+        'account_name': account_name,
+        'created_at': datetime.now().isoformat(),
+        'initial_balance': initial_balance,
+        'balance': initial_balance,
+        'total_staked': 0,
+        'total_payout': 0,
+        'total_profit_loss': 0,
+        'total_bets': 0,
+        'total_hits': 0,
+        'hit_rate': 0,
+        'max_drawdown': 0,
+        'peak_balance': initial_balance,
+        'roi': 0,
+        'transactions': [],
+        'daily_stats': {},
+    }
+    
+    _save_account(account)
+    
+    return {
+        'success': True,
+        'message': f'账户创建成功：{account_name}，初始余额{initial_balance}元',
+        'account': account,
+        'already_exists': False,
+    }
+
+
+@mcp.tool()
+def get_account() -> dict:
+    """
+    查询模拟账户信息：余额、绩效指标、交易记录
+    
+    Returns:
+        dict: 账户完整信息
+    """
+    account = _load_account()
+    if account is None:
+        return {'success': False, 'error': '账户不存在，请先调用init_account初始化账户'}
+    
+    # 计算绩效指标
+    total_bets = account.get('total_bets', 0)
+    total_hits = account.get('total_hits', 0)
+    hit_rate = round(total_hits / total_bets * 100, 1) if total_bets > 0 else 0
+    total_staked = account.get('total_staked', 0)
+    total_profit_loss = account.get('total_profit_loss', 0)
+    roi = round(total_profit_loss / total_staked * 100, 2) if total_staked > 0 else 0
+    
+    # 更新绩效指标
+    account['hit_rate'] = hit_rate
+    account['roi'] = roi
+    
+    return {
+        'success': True,
+        'account_name': account['account_name'],
+        'balance': account['balance'],
+        'initial_balance': account['initial_balance'],
+        'performance': {
+            'total_staked': total_staked,
+            'total_payout': account.get('total_payout', 0),
+            'total_profit_loss': total_profit_loss,
+            'total_bets': total_bets,
+            'total_hits': total_hits,
+            'hit_rate': hit_rate,
+            'max_drawdown': account.get('max_drawdown', 0),
+            'peak_balance': account.get('peak_balance', account['initial_balance']),
+            'roi': roi,
+        },
+        'recent_transactions': account.get('transactions', [])[-10:],
+        'message': f'账户余额{account["balance"]}元，累计盈亏{total_profit_loss}元，命中率{hit_rate}%，ROI{roi}%',
+    }
+
+
+@mcp.tool()
+def deduct_stake(amount: float, bet_slip_id: str, description: str = '') -> dict:
+    """
+    投注扣减：从账户余额中扣除投注金额
+    
+    Args:
+        amount: 扣减金额（元）
+        bet_slip_id: 投注单ID
+        description: 描述
+    
+    Returns:
+        dict: 扣减结果
+    """
+    from datetime import datetime
+    
+    account = _load_account()
+    if account is None:
+        return {'success': False, 'error': '账户不存在，请先调用init_account初始化账户'}
+    
+    if amount <= 0:
+        return {'success': False, 'error': '扣减金额必须大于0'}
+    
+    if account['balance'] < amount:
+        return {'success': False, 'error': f'账户余额不足：当前余额{account["balance"]}元，需要扣减{amount}元'}
+    
+    # 执行扣减
+    before_balance = account['balance']
+    account['balance'] -= amount
+    account['total_staked'] += amount
+    account['total_bets'] += 1
+    
+    # 记录交易
+    transaction = {
+        'type': 'deduct',
+        'amount': amount,
+        'bet_slip_id': bet_slip_id,
+        'description': description,
+        'before_balance': before_balance,
+        'after_balance': account['balance'],
+        'timestamp': datetime.now().isoformat(),
+    }
+    account['transactions'].append(transaction)
+    
+    # 更新峰值和最大回撤
+    if account['balance'] > account.get('peak_balance', 0):
+        account['peak_balance'] = account['balance']
+    drawdown = (account['peak_balance'] - account['balance']) / account['peak_balance'] * 100 if account['peak_balance'] > 0 else 0
+    if drawdown > account.get('max_drawdown', 0):
+        account['max_drawdown'] = round(drawdown, 2)
+    
+    _save_account(account)
+    
+    return {
+        'success': True,
+        'bet_slip_id': bet_slip_id,
+        'amount': amount,
+        'before_balance': before_balance,
+        'after_balance': account['balance'],
+        'message': f'投注扣减成功：{amount}元，余额{account["balance"]}元',
+    }
+
+
+@mcp.tool()
+def add_payout(amount: float, bet_slip_id: str, is_hit: bool = True, description: str = '') -> dict:
+    """
+    奖金入账：赛后结算后，将奖金加入账户余额
+    
+    Args:
+        amount: 入账金额（元）
+        bet_slip_id: 投注单ID
+        is_hit: 是否命中
+        description: 描述
+    
+    Returns:
+        dict: 入账结果
+    """
+    from datetime import datetime
+    
+    account = _load_account()
+    if account is None:
+        return {'success': False, 'error': '账户不存在，请先调用init_account初始化账户'}
+    
+    if amount < 0:
+        return {'success': False, 'error': '入账金额不能为负数'}
+    
+    # 执行入账
+    before_balance = account['balance']
+    account['balance'] += amount
+    account['total_payout'] += amount
+    account['total_profit_loss'] = account['balance'] - account['initial_balance']
+    
+    if is_hit:
+        account['total_hits'] += 1
+    
+    # 记录交易
+    transaction = {
+        'type': 'payout',
+        'amount': amount,
+        'bet_slip_id': bet_slip_id,
+        'is_hit': is_hit,
+        'description': description,
+        'before_balance': before_balance,
+        'after_balance': account['balance'],
+        'timestamp': datetime.now().isoformat(),
+    }
+    account['transactions'].append(transaction)
+    
+    # 更新峰值和最大回撤
+    if account['balance'] > account.get('peak_balance', 0):
+        account['peak_balance'] = account['balance']
+    drawdown = (account['peak_balance'] - account['balance']) / account['peak_balance'] * 100 if account['peak_balance'] > 0 else 0
+    if drawdown > account.get('max_drawdown', 0):
+        account['max_drawdown'] = round(drawdown, 2)
+    
+    _save_account(account)
+    
+    return {
+        'success': True,
+        'bet_slip_id': bet_slip_id,
+        'amount': amount,
+        'is_hit': is_hit,
+        'before_balance': before_balance,
+        'after_balance': account['balance'],
+        'message': f'奖金入账成功：{amount}元，余额{account["balance"]}元',
+    }
+
+
+@mcp.tool()
+def get_transaction_history(limit: int = 20, transaction_type: str = None) -> dict:
+    """
+    查询交易记录：投注扣减、奖金入账等
+    
+    Args:
+        limit: 返回记录数量，默认20
+        transaction_type: 交易类型过滤（deduct/payout），None表示全部
+    
+    Returns:
+        dict: 交易记录列表
+    """
+    account = _load_account()
+    if account is None:
+        return {'success': False, 'error': '账户不存在，请先调用init_account初始化账户'}
+    
+    transactions = account.get('transactions', [])
+    
+    # 按类型过滤
+    if transaction_type:
+        transactions = [t for t in transactions if t.get('type') == transaction_type]
+    
+    # 按时间倒序，取最近limit条
+    transactions = sorted(transactions, key=lambda x: x.get('timestamp', ''), reverse=True)[:limit]
+    
+    return {
+        'success': True,
+        'total_transactions': len(account.get('transactions', [])),
+        'returned_count': len(transactions),
+        'transaction_type': transaction_type or 'all',
+        'transactions': transactions,
+    }
+
+
+@mcp.tool()
+def reset_account(initial_balance: float = 10000, confirm: bool = False) -> dict:
+    """
+    重置模拟账户：清空所有交易记录，恢复初始余额
+    
+    Args:
+        initial_balance: 新的初始余额
+        confirm: 确认重置（必须为True才会执行）
+    
+    Returns:
+        dict: 重置结果
+    """
+    import os
+    from datetime import datetime
+    
+    if not confirm:
+        return {'success': False, 'error': '重置账户需要confirm=True确认，请确认后重试'}
+    
+    account_file = _get_account_file()
+    
+    # 备份旧账户
+    if os.path.exists(account_file):
+        backup_file = account_file + '.backup_' + datetime.now().strftime('%Y%m%d_%H%M%S')
+        import shutil
+        shutil.copy(account_file, backup_file)
+    
+    # 创建新账户
+    account = {
+        'account_name': '模拟账户',
+        'created_at': datetime.now().isoformat(),
+        'initial_balance': initial_balance,
+        'balance': initial_balance,
+        'total_staked': 0,
+        'total_payout': 0,
+        'total_profit_loss': 0,
+        'total_bets': 0,
+        'total_hits': 0,
+        'hit_rate': 0,
+        'max_drawdown': 0,
+        'peak_balance': initial_balance,
+        'roi': 0,
+        'transactions': [],
+        'daily_stats': {},
+    }
+    
+    _save_account(account)
+    
+    return {
+        'success': True,
+        'message': f'账户重置成功，新初始余额{initial_balance}元',
+        'account': account,
+        'backup_file': backup_file if os.path.exists(account_file) else None,
+    }
+
 
 if __name__ == '__main__':
     mcp.run()

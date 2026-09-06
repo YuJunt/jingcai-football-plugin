@@ -79,6 +79,14 @@ def check_official_rules(bets: list, plays: list = None) -> dict:
     Returns:
         规则校验结果
     """
+    # 参数校验
+    if bets is None or not isinstance(bets, list):
+        return make_error_response("bets不能为空且必须是列表", "validation", "请提供投注单列表")
+    if len(bets) == 0:
+        return {'total_bets': 0, 'passed': True, 'errors': [], 'warnings': [], 'details': [], 'note': '无投注单需要校验'}
+    if plays is not None and not isinstance(plays, list):
+        return make_error_response("plays必须是列表", "validation", "玩法列表必须是列表类型")
+    
     results = {
         'total_bets': len(bets),
         'passed': True,
@@ -149,6 +157,14 @@ def preflight_check(matches: list, analysis_results: list = None, bets: list = N
     Returns:
         检查结果
     """
+    # 参数校验
+    if matches is None or not isinstance(matches, list):
+        return make_error_response("matches不能为空且必须是列表", "validation", "请提供比赛列表")
+    if analysis_results is not None and not isinstance(analysis_results, list):
+        return make_error_response("analysis_results必须是列表", "validation", "分析结果必须是列表类型")
+    if bets is not None and not isinstance(bets, list):
+        return make_error_response("bets必须是列表", "validation", "投注单必须是列表类型")
+    
     results = {
         'check_time': datetime.now().isoformat(),
         'passed': True,
@@ -278,6 +294,17 @@ def reflection_check(context: dict, check_type: str = 'full') -> dict:
     Returns:
         反思检查结果
     """
+    # 参数校验
+    if context is None or not isinstance(context, dict):
+        return make_error_response("context不能为空且必须是字典", "validation", "请提供当前上下文字典")
+    if check_type is None:
+        check_type = 'full'
+    if not isinstance(check_type, str):
+        return make_error_response("check_type必须是字符串", "validation", "检查类型必须是字符串")
+    valid_types = ['data', 'analysis', 'portfolio', 'full']
+    if check_type not in valid_types:
+        return make_error_response(f"check_type必须是{valid_types}之一", "validation", "请提供有效的检查类型")
+    
     results = {
         'check_time': datetime.now().isoformat(),
         'check_type': check_type,
@@ -402,6 +429,12 @@ def mixed_parlay_wooden_bucket_check(matches: list) -> dict:
     Returns:
         各玩法关数上限、木桶上限、当前关数、是否合法、修正建议
     """
+    # 参数校验
+    if matches is None or not isinstance(matches, list):
+        return make_error_response("matches不能为空且必须是列表", "validation", "请提供比赛列表")
+    if len(matches) == 0:
+        return {'passed': True, 'note': '无比赛需要校验', 'min_limit': 8, 'play_limits': {}}
+    
     # 各玩法过关上限（竞彩官方规则）
     play_max_legs = {
         '胜平负': 8,

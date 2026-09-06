@@ -19,6 +19,7 @@ mcp = FastMCP("jingcai-data-collector")
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'data')
 HISTORY_DIR = os.path.join(DATA_DIR, 'history')
+PLUGIN_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
 
 # 竞彩官方API
 SPORTTERY_API_BASE = "https://webapi.sporttery.cn/gateway/uniform/football"
@@ -119,7 +120,15 @@ def get_match_list(date: str = None) -> dict:
         成功：比赛列表（含matchId/matchNumStr/联赛/对阵/开赛时间/HAD+HHAD赔率）
         失败：{need_fetch: true, fetch_url: "...", note: "请用web.fetch获取此URL的原始JSON，然后调用parse_match_list_response"}
     """
-    if date is None:
+    # 参数校验
+    if date is not None:
+        if not isinstance(date, str):
+            return make_error_response("date必须是字符串", "validation", "日期格式必须是YYYY-MM-DD的字符串")
+        # 验证日期格式
+        import re
+        if not re.match(r'^\d{4}-\d{2}-\d{2}$', date):
+            return make_error_response("date格式错误", "validation", "日期格式必须是YYYY-MM-DD，例如2026-09-06")
+    else:
         date = datetime.now().strftime('%Y-%m-%d')
     
     # 尝试直接访问
@@ -128,18 +137,37 @@ def get_match_list(date: str = None) -> dict:
         try:
             data = json.loads(raw)
             parsed = parse_match_list_data(data, date)
-            # 缓存到本地
-            save_json(os.path.join(DATA_DIR, f'matches_{date}.json'), parsed)
-            return parsed
+            # 检查是否真的获取到比赛（count=0可能是云IP被封或API格式变化）
+            match_count = parsed.get('count', 0) if isinstance(parsed, dict) else 0
+            if match_count > 0:
+                # 缓存到本地
+                save_json(os.path.join(DATA_DIR, f'matches_{date}.json'), parsed)
+                return parsed
+            else:
+                # count=0，触发降级（可能是云IP被封返回空数据）
+                return {
+                    'need_fetch': True,
+                    'fetch_url': MATCH_LIST_URL,
+                    'parse_tool': 'parse_match_list_response',
+                    'note': f'API返回0场比赛（可能云IP被封），请用web.fetch获取此URL的原始JSON文本，然后调用parse_match_list_response(json_text=...)解析。也可用general_search搜索"竞彩足球 {date} 赔率"获取备用数据',
+                    'fallback_search': f'竞彩足球 {date} 胜平负赔率 让球赔率 赛程'
+                }
         except Exception as e:
-            return {'error': f'API返回解析失败: {e}', 'raw_preview': raw[:500]}
+            return {
+                'need_fetch': True,
+                'fetch_url': MATCH_LIST_URL,
+                'parse_tool': 'parse_match_list_response',
+                'note': f'API返回解析失败: {e}，请用web.fetch获取此URL的原始JSON文本，然后调用parse_match_list_response(json_text=...)解析',
+                'raw_preview': raw[:500]
+            }
     
     # 降级：返回URL让LLM用web.fetch
     return {
         'need_fetch': True,
         'fetch_url': MATCH_LIST_URL,
         'parse_tool': 'parse_match_list_response',
-        'note': '服务器直连被限制（403），请用web.fetch获取此URL的原始JSON文本，然后调用parse_match_list_response(json_text=...)解析'
+        'note': '服务器直连被限制（403），请用web.fetch获取此URL的原始JSON文本，然后调用parse_match_list_response(json_text=...)解析',
+        'fallback_search': f'竞彩足球 {date} 胜平负赔率 让球赔率 赛程'
     }
 
 
@@ -148,7 +176,17 @@ def parse_match_list_data(api_data, filter_date=None):
     matches = []
     value = api_data.get('value', {})
     if isinstance(value, dict):
-        match_list = value.get('matchList', [])
+        # 新API结构：value.matchInfoList[].subMatchList[]（按日期分组）
+        match_info_list = value.get('matchInfoList', [])
+        match_list = []
+        for info in match_info_list:
+            if isinstance(info, dict):
+                sub_list = info.get('subMatchList', [])
+                if isinstance(sub_list, list):
+                    match_list.extend(sub_list)
+        # 兼容旧结构：value.matchList
+        if not match_list:
+            match_list = value.get('matchList', [])
     elif isinstance(value, list):
         match_list = value
     else:
@@ -211,6 +249,16 @@ def parse_match_list_response(json_text: str, date: str = None) -> dict:
     Returns:
         比赛列表（同get_match_list成功返回格式）
     """
+    # 参数校验
+    if not json_text or not isinstance(json_text, str):
+        return make_error_response("json_text不能为空且必须是字符串", "validation", "请提供web.fetch返回的原始JSON文本")
+    if date is not None:
+        if not isinstance(date, str):
+            return make_error_response("date必须是字符串", "validation", "日期必须是字符串类型")
+        import re
+        if not re.match(r'^\d{4}-\d{2}-\d{2}$', date):
+            return make_error_response("date格式错误", "validation", "日期格式必须是YYYY-MM-DD")
+    
     try:
         data = json.loads(json_text)
         result = parse_match_list_data(data, date)
@@ -238,6 +286,15 @@ def get_official_odds(match_id: str) -> dict:
         成功：5玩法完整赔率（胜平负/让球/比分31项/总进球8档/半全场9项）+ 单关支持情况
         失败：{need_fetch: true, fetch_url: "...", parse_tool: "parse_odds_response"}
     """
+    # 参数校验
+    if match_id is None:
+        return make_error_response("match_id不能为空", "validation", "请提供比赛ID（数字，如2041306）")
+    match_id = str(match_id).strip()
+    if not match_id:
+        return make_error_response("match_id不能为空字符串", "validation", "请提供有效的比赛ID")
+    if not match_id.isdigit():
+        return make_error_response("match_id必须是数字", "validation", "比赛ID必须是纯数字，如2041306")
+    
     url = FIXED_BONUS_URL.format(mid=match_id)
     raw = fetch_url(url)
     if raw:
@@ -365,6 +422,12 @@ def parse_odds_response(json_text: str, match_id: str = '') -> dict:
     Returns:
         5玩法完整赔率（同get_official_odds成功返回格式）
     """
+    # 参数校验
+    if not json_text or not isinstance(json_text, str):
+        return make_error_response("json_text不能为空且必须是字符串", "validation", "请提供web.fetch返回的原始JSON文本")
+    if match_id is not None and not isinstance(match_id, str):
+        return make_error_response("match_id必须是字符串", "validation", "比赛ID必须是字符串类型")
+    
     try:
         data = json.loads(json_text)
         return parse_odds_data(data, match_id)
@@ -390,6 +453,15 @@ def get_official_info(match_id: str) -> dict:
     Returns:
         8大资讯数据 + 失败API的fetch_url列表
     """
+    # 参数校验
+    if match_id is None:
+        return make_error_response("match_id不能为空", "validation", "请提供比赛ID（数字，如2041306）")
+    match_id = str(match_id).strip()
+    if not match_id:
+        return make_error_response("match_id不能为空字符串", "validation", "请提供有效的比赛ID")
+    if not match_id.isdigit():
+        return make_error_response("match_id必须是数字", "validation", "比赛ID必须是纯数字，如2041306")
+    
     result = {
         'match_id': match_id,
         'news': {},
@@ -502,6 +574,16 @@ def get_third_party_odds(home: str, away: str, league: str = "") -> dict:
     Returns:
         第三方赔率（欧指/亚盘/大小球）+ 失败数据源的fetch_url列表
     """
+    # 参数校验
+    if home is None or away is None:
+        return make_error_response("home和away不能为空", "validation", "请提供主队和客队名称")
+    home = str(home).strip()
+    away = str(away).strip()
+    if not home or not away:
+        return make_error_response("home和away不能为空字符串", "validation", "请提供有效的主队和客队名称")
+    if league is None:
+        league = ""
+    
     result = {
         'match': f'{home} vs {away}',
         'league': league,
@@ -588,6 +670,16 @@ def get_third_party_news(home: str, away: str, league: str = "") -> dict:
     Returns:
         搜索关键词建议 + 资讯分类 + 解析指引
     """
+    # 参数校验
+    if home is None or away is None:
+        return make_error_response("home和away不能为空", "validation", "请提供主队和客队名称")
+    home = str(home).strip()
+    away = str(away).strip()
+    if not home or not away:
+        return make_error_response("home和away不能为空字符串", "validation", "请提供有效的主队和客队名称")
+    if league is None:
+        league = ""
+    
     # 构造分维度搜索关键词
     search_plan = {
         '伤停信息': [
@@ -966,6 +1058,10 @@ def parse_third_party_text(text: str) -> dict:
     Returns:
         解析后的结构化数据（欧指/亚盘/大小球/关键资讯）
     """
+    # 参数校验
+    if text is None:
+        return make_error_response('text不能为空', 'validation', '请提供text参数')
+
     import re
     
     result = {
@@ -1036,6 +1132,14 @@ def track_injury(team: str, injury_info: str = None, action: str = 'query') -> d
     Returns:
         球队伤停信息
     """
+    # 参数校验
+    if team is not None and not isinstance(team, (str, int, float, list, dict)):
+        return make_error_response('team类型错误', 'validation', '请提供正确的类型')
+    if injury_info is not None and not isinstance(injury_info, (str, int, float, list, dict)):
+        return make_error_response('injury_info类型错误', 'validation', '请提供正确的类型')
+    if action is not None and not isinstance(action, (str, int, float, list, dict)):
+        return make_error_response('action类型错误', 'validation', '请提供正确的类型')
+
     injury_file = os.path.join(DATA_DIR, 'injury_tracker.json')
     data = load_json(injury_file) or {}
     
@@ -1079,6 +1183,16 @@ def track_referee(referee: str, league: str = None, stats: dict = None, action: 
     Returns:
         裁判执法风格统计
     """
+    # 参数校验
+    if referee is not None and not isinstance(referee, (str, int, float, list, dict)):
+        return make_error_response('referee类型错误', 'validation', '请提供正确的类型')
+    if league is not None and not isinstance(league, (str, int, float, list, dict)):
+        return make_error_response('league类型错误', 'validation', '请提供正确的类型')
+    if stats is not None and not isinstance(stats, (str, int, float, list, dict)):
+        return make_error_response('stats类型错误', 'validation', '请提供正确的类型')
+    if action is not None and not isinstance(action, (str, int, float, list, dict)):
+        return make_error_response('action类型错误', 'validation', '请提供正确的类型')
+
     referee_file = os.path.join(DATA_DIR, 'referee_tracker.json')
     data = load_json(referee_file) or {}
     
@@ -1127,6 +1241,14 @@ def track_referee(referee: str, league: str = None, stats: dict = None, action: 
 @mcp.tool()
 @safe_tool
 def fetch_with_retry(url: str, max_retries: int = 3, timeout: int = 15) -> dict:
+    # 参数校验
+    if url is None:
+        return make_error_response('url不能为空', 'validation', '请提供url参数')
+    if max_retries is None:
+        return make_error_response('max_retries不能为空', 'validation', '请提供max_retries参数')
+    if timeout is None:
+        return make_error_response('timeout不能为空', 'validation', '请提供timeout参数')
+
     """带重试机制的数据获取工具，支持指数退避"""
     import urllib.request
     import urllib.error
@@ -1169,9 +1291,9 @@ def cache_data(key: str, data: dict = None, ttl: int = 3600, action: str = 'get'
             entry = load_json(cache_file)
             expires = datetime.fromisoformat(entry['expires_at'])
             if datetime.now() < expires:
-                return {'success': True, 'key': key, 'data': entry['data'], 'is_expired': False}
-            return {'success': False, 'key': key, 'is_expired': True}
-        return {'success': False, 'key': key, 'note': '缓存不存在'}
+                return {'success': True, 'key': key, 'data': entry['data'], 'cache_hit': True, 'is_expired': False}
+            return {'success': True, 'key': key, 'cache_hit': False, 'is_expired': True, 'note': '缓存已过期'}
+        return {'success': True, 'key': key, 'cache_hit': False, 'note': '缓存不存在'}
     elif action == 'list':
         files = [f for f in os.listdir(cache_dir) if f.endswith('.json')]
         return {'success': True, 'total_caches': len(files)}
@@ -1186,6 +1308,12 @@ def cache_data(key: str, data: dict = None, ttl: int = 3600, action: str = 'get'
 @safe_tool
 def validate_data_completeness(matches: list, required_fields: list = None) -> dict:
     """数据完整性校验工具，检查5种玩法赔率+8大资讯完整性"""
+    # 参数校验
+    if matches is None or not isinstance(matches, list):
+        return make_error_response("matches不能为空且必须是列表", "validation", "请提供比赛列表")
+    if required_fields is not None and not isinstance(required_fields, list):
+        return make_error_response("required_fields必须是列表", "validation", "必填字段必须是列表类型")
+    
     if required_fields is None:
         required_fields = ['match_id', 'league', 'home', 'away',
             'odds.胜平负', 'odds.让球胜平负', 'odds.总进球', 'odds.比分', 'odds.半全场',
@@ -1240,6 +1368,16 @@ def get_multi_source_odds(home: str, away: str, league: str = "", match_id: str 
     Returns:
         多源赔率对比（官方SP/第三方欧指/亚盘/大小球）+ 偏离度分析 + 价值信号
     """
+    # 参数校验
+    if home is None:
+        return make_error_response('home不能为空', 'validation', '请提供home参数')
+    if away is None:
+        return make_error_response('away不能为空', 'validation', '请提供away参数')
+    if league is None:
+        return make_error_response('league不能为空', 'validation', '请提供league参数')
+    if match_id is None:
+        return make_error_response('match_id不能为空', 'validation', '请提供match_id参数')
+
     result = {
         'match': f'{home} vs {away}',
         'league': league,
@@ -1336,6 +1474,8 @@ def get_data_source_status() -> dict:
     Returns:
         各数据源实时状态（可达/不可达/响应时间/建议）
     """
+    # 参数校验
+
     sources_to_test = [
         # 官方API
         {'name': '竞彩赛程API', 'url': MATCH_LIST_URL, 'type': '官方', 'critical': True},
@@ -1419,6 +1559,15 @@ def get_match_result(match_id: str) -> dict:
     Returns:
         赛果（比分/半场比分/胜平负/让球/总进球/半全场彩果）+ 是否已开奖
     """
+    # 参数校验
+    if not match_id or not isinstance(match_id, str):
+        return make_error_response("match_id不能为空且必须是字符串", "validation", "请提供比赛ID")
+    # 确保match_id是数字字符串
+    try:
+        int(match_id)
+    except (ValueError, TypeError):
+        return make_error_response("match_id必须是数字字符串", "validation", "比赛ID必须是数字，如'123456'")
+    
     result = {'match_id': match_id, 'settled': False, 'results': {}, 'source': ''}
     
     # 尝试1: getMatchResultV1（近况API，已结束比赛包含赛果）
@@ -1491,6 +1640,10 @@ def compare_odds_movement(match_id: str) -> dict:
     Returns:
         赔率走势（各玩法各选项的SP变化/变化率/资金流向信号）
     """
+    # 参数校验
+    if match_id is None:
+        return make_error_response('match_id不能为空', 'validation', '请提供match_id参数')
+
     snapshot_dir = os.path.join(DATA_DIR, 'odds_snapshots', match_id)
     if not os.path.exists(snapshot_dir):
         return {'match_id': match_id, 'error': '无快照数据，请先调用record_odds_snapshot采集'}
@@ -1574,7 +1727,22 @@ def batch_record_odds_snapshot(match_ids: str, label: str = '') -> dict:
     Returns:
         批量快照结果（成功数/失败数/各比赛快照路径/fetch_url列表）
     """
+    # 参数校验
+    if not match_ids or not isinstance(match_ids, str):
+        return make_error_response("match_ids不能为空且必须是字符串", "validation", "请提供比赛ID列表，逗号分隔")
+    if label is not None and not isinstance(label, str):
+        return make_error_response("label必须是字符串", "validation", "快照标签必须是字符串类型")
+    
     ids = [mid.strip() for mid in match_ids.split(',') if mid.strip()]
+    if not ids:
+        return make_error_response("match_ids解析后为空", "validation", "请提供有效的比赛ID，逗号分隔")
+    # 验证每个ID都是数字
+    for mid in ids:
+        try:
+            int(mid)
+        except (ValueError, TypeError):
+            return make_error_response(f"比赛ID '{mid}' 不是有效数字", "validation", "比赛ID必须是数字")
+    
     result = {
         'label': label or datetime.now().strftime('%Y-%m-%d %H:%M'),
         'total': len(ids),
@@ -1646,6 +1814,17 @@ def get_support_rate(match_ids: str) -> dict:
     Returns:
         各比赛的支持率（主胜/平局/客胜比例 + 投注票数）
     """
+    # 参数校验
+    if match_ids is None:
+        return make_error_response("match_ids不能为空", "validation", "请提供比赛ID列表，逗号分隔（如'2041306,2041307'）")
+    match_ids = str(match_ids).strip()
+    if not match_ids:
+        return make_error_response("match_ids不能为空字符串", "validation", "请提供有效的比赛ID列表")
+    # 验证格式（逗号分隔的数字）
+    import re
+    if not re.match(r'^\d+(,\d+)*$', match_ids):
+        return make_error_response("match_ids格式错误", "validation", "比赛ID必须是逗号分隔的纯数字，如'2041306,2041307'")
+    
     url = SUPPORT_RATE_URL.format(mids=match_ids)
     raw = fetch_url(url, timeout=10)
     if not raw:
@@ -1686,6 +1865,10 @@ def get_support_rate(match_ids: str) -> dict:
 @mcp.tool()
 @safe_tool
 def parse_support_rate_response(json_text: str) -> dict:
+    # 参数校验
+    if json_text is None:
+        return make_error_response('json_text不能为空', 'validation', '请提供json_text参数')
+
     """解析web.fetch获取的支持率API原始JSON（降级方案用）"""
     try:
         data = json.loads(json_text)
@@ -1728,6 +1911,12 @@ def parse_500_html(html_text: str, data_type: str = "european") -> dict:
     Returns:
         结构化赔率数据（各公司赔率+平均值+初盘）
     """
+    # 参数校验
+    if html_text is None:
+        return make_error_response('html_text不能为空', 'validation', '请提供html_text参数')
+    if data_type is None:
+        return make_error_response('data_type不能为空', 'validation', '请提供data_type参数')
+
     import re as _re
     if data_type == 'european':
         return _parse_500_european(html_text)
@@ -1828,6 +2017,10 @@ def get_settlement_detail(match_id: str) -> dict:
     Returns:
         结算详情（比分/半场比分/5玩法中奖选项/最终SP/单注奖金）
     """
+    # 参数校验
+    if match_id is None:
+        return make_error_response('match_id不能为空', 'validation', '请提供match_id参数')
+
     result = {'match_id': match_id, 'settled': False, 'results': {}, 'payouts': {}}
     match_result = get_match_result.fn(match_id)
     if not match_result.get('settled'):
@@ -1836,9 +2029,10 @@ def get_settlement_detail(match_id: str) -> dict:
         return result
     result['settled'] = True
     result['results'] = match_result.get('results', {})
-    odds = get_official_odds(match_id)
-    if odds.get('odds'):
-        result['final_odds'] = odds['odds']
+    odds = get_official_odds.fn(match_id=match_id)
+    odds_data = odds.get('data', odds)
+    if odds_data.get('odds'):
+        result['final_odds'] = odds_data['odds']
         score = result['results'].get('score', '')
         if score and ':' in score:
             try:
@@ -1884,6 +2078,12 @@ def cache_third_party_data(match_id: str, date: str, odds_data: dict = None,
     缓存第三方数据到本地，避免重复搜索
     支持赔率数据和资讯数据，按日期+比赛ID存储
     """
+    # 参数校验
+    if match_id is None:
+        return make_error_response('match_id不能为空', 'validation', '请提供match_id参数')
+    if date is None:
+        return make_error_response('date不能为空', 'validation', '请提供date参数')
+    
     import os, json
     cache_dir = os.path.join(PLUGIN_ROOT, 'data', 'third_party', date)
     os.makedirs(cache_dir, exist_ok=True)
@@ -1913,6 +2113,14 @@ def load_third_party_data(match_id: str, date: str, data_type: str = "all") -> d
     data_type: odds/news/all
     如果缓存不存在，返回cache_miss=False，提示需要搜索
     """
+    # 参数校验
+    if match_id is None:
+        return make_error_response('match_id不能为空', 'validation', '请提供match_id参数')
+    if date is None:
+        return make_error_response('date不能为空', 'validation', '请提供date参数')
+    if data_type is None:
+        return make_error_response('data_type不能为空', 'validation', '请提供data_type参数')
+
     import os, json
     cache_dir = os.path.join(PLUGIN_ROOT, 'data', 'third_party', date)
     
@@ -1948,7 +2156,18 @@ def record_odds_snapshot(match_id: str, date: str, odds: dict, phase: str = "ope
     记录赔率快照（初盘/即时/终盘），支持赔率走势分析
     phase: opening(初盘)/live(即时)/closing(终盘)
     """
+    # 参数校验
+    if match_id is None:
+        return make_error_response('match_id不能为空', 'validation', '请提供match_id参数')
+    if date is None:
+        return make_error_response('date不能为空', 'validation', '请提供date参数')
+    if odds is None:
+        return make_error_response('odds不能为空', 'validation', '请提供odds参数')
+    if phase is None:
+        return make_error_response('phase不能为空', 'validation', '请提供phase参数')
+
     import os, json
+    PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     history_dir = os.path.join(PLUGIN_ROOT, 'data', 'third_party', 'odds_history')
     os.makedirs(history_dir, exist_ok=True)
     
@@ -1974,6 +2193,251 @@ def record_odds_snapshot(match_id: str, date: str, odds: dict, phase: str = "ope
     return {'success': True, 'data': {'match_id': match_id, 'phase': phase, 
                                        'snapshot_count': len(history['snapshots']),
                                        'note': f'{phase}赔率快照已记录'}}
+
+
+# ============================================================
+# 数据持久化工具（4个）
+# ============================================================
+
+def _get_persistence_dir(data_type):
+    """获取数据持久化目录"""
+    import os
+    server_dir = os.path.dirname(os.path.abspath(__file__))
+    plugin_root = os.path.dirname(os.path.dirname(server_dir))
+    persistence_dir = os.path.join(plugin_root, 'data', 'persistence', data_type)
+    os.makedirs(persistence_dir, exist_ok=True)
+    return persistence_dir
+
+
+@mcp.tool()
+def save_match_info(match_id: str, match_info: dict, info_type: str = 'official', date: str = None) -> dict:
+    """
+    保存比赛资讯到持久化存储（8大官方资讯+第三方资讯）
+    
+    Args:
+        match_id: 比赛ID
+        match_info: 比赛资讯数据（字典格式）
+        info_type: 资讯类型（official官方/third_party第三方/all全部）
+        date: 比赛日期（YYYY-MM-DD），默认今天
+    
+    Returns:
+        dict: 保存结果
+    """
+    import os
+    import json
+    from datetime import datetime
+    
+    if not date:
+        date = datetime.now().strftime('%Y-%m-%d')
+    
+    persistence_dir = _get_persistence_dir('match_info')
+    date_dir = os.path.join(persistence_dir, date)
+    os.makedirs(date_dir, exist_ok=True)
+    
+    file_path = os.path.join(date_dir, f'{match_id}_{info_type}.json')
+    
+    # 构建保存数据
+    data = {
+        'match_id': match_id,
+        'date': date,
+        'info_type': info_type,
+        'saved_at': datetime.now().isoformat(),
+        'match_info': match_info,
+    }
+    
+    with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    
+    return {
+        'success': True,
+        'match_id': match_id,
+        'info_type': info_type,
+        'date': date,
+        'file_path': file_path,
+        'file_size': os.path.getsize(file_path),
+        'message': f'比赛资讯已保存：{match_id} ({info_type})，{date}',
+    }
+
+
+@mcp.tool()
+def save_third_party_odds(match_id: str, odds_data: dict, odds_type: str = 'all', date: str = None) -> dict:
+    """
+    保存第三方赔率到持久化存储（欧指、亚盘、大小球）
+    
+    Args:
+        match_id: 比赛ID
+        odds_data: 赔率数据（字典格式，包含european/asian/over_under）
+        odds_type: 赔率类型（european欧指/asian亚盘/over_under大小球/all全部）
+        date: 比赛日期，默认今天
+    
+    Returns:
+        dict: 保存结果
+    """
+    import os
+    import json
+    from datetime import datetime
+    
+    if not date:
+        date = datetime.now().strftime('%Y-%m-%d')
+    
+    persistence_dir = _get_persistence_dir('third_party_odds')
+    date_dir = os.path.join(persistence_dir, date)
+    os.makedirs(date_dir, exist_ok=True)
+    
+    file_path = os.path.join(date_dir, f'{match_id}_{odds_type}.json')
+    
+    data = {
+        'match_id': match_id,
+        'date': date,
+        'odds_type': odds_type,
+        'saved_at': datetime.now().isoformat(),
+        'odds_data': odds_data,
+    }
+    
+    with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    
+    return {
+        'success': True,
+        'match_id': match_id,
+        'odds_type': odds_type,
+        'date': date,
+        'file_path': file_path,
+        'file_size': os.path.getsize(file_path),
+        'message': f'第三方赔率已保存：{match_id} ({odds_type})，{date}',
+    }
+
+
+@mcp.tool()
+def query_persistent_data(data_type: str, date: str = None, match_id: str = None, limit: int = 20) -> dict:
+    """
+    查询持久化数据（按日期/比赛/类型）
+    
+    Args:
+        data_type: 数据类型（match_info/third_party_odds/odds_snapshots/all）
+        date: 日期过滤（YYYY-MM-DD），None表示全部
+        match_id: 比赛ID过滤，None表示全部
+        limit: 返回记录数量限制
+    
+    Returns:
+        dict: 查询结果
+    """
+    import os
+    import json
+    import glob
+    
+    results = []
+    data_types = [data_type] if data_type != 'all' else ['match_info', 'third_party_odds', 'odds_snapshots']
+    
+    for dt in data_types:
+        persistence_dir = _get_persistence_dir(dt)
+        
+        # 按日期过滤
+        if date:
+            search_pattern = os.path.join(persistence_dir, date, '*.json')
+        else:
+            search_pattern = os.path.join(persistence_dir, '**', '*.json')
+        
+        files = glob.glob(search_pattern, recursive=True)
+        
+        for file_path in files:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                # 按比赛ID过滤
+                if match_id and data.get('match_id') != match_id:
+                    continue
+                
+                results.append({
+                    'data_type': dt,
+                    'match_id': data.get('match_id'),
+                    'date': data.get('date'),
+                    'saved_at': data.get('saved_at'),
+                    'file_path': file_path,
+                    'file_size': os.path.getsize(file_path),
+                })
+            except Exception as e:
+                continue
+    
+    # 按保存时间倒序
+    results = sorted(results, key=lambda x: x.get('saved_at', ''), reverse=True)[:limit]
+    
+    return {
+        'success': True,
+        'data_type': data_type,
+        'date': date,
+        'match_id': match_id,
+        'total_count': len(results),
+        'results': results,
+        'message': f'查询到{len(results)}条持久化数据',
+    }
+
+
+@mcp.tool()
+def get_persistence_stats() -> dict:
+    """
+    获取数据持久化统计信息
+    
+    Returns:
+        dict: 统计信息（各类型数据量、总大小、最早/最新保存时间）
+    """
+    import os
+    import json
+    import glob
+    from datetime import datetime
+    
+    stats = {}
+    data_types = ['match_info', 'third_party_odds', 'odds_snapshots', 'decisions', 'account']
+    
+    total_files = 0
+    total_size = 0
+    all_dates = []
+    
+    for dt in data_types:
+        persistence_dir = _get_persistence_dir(dt) if dt in ['match_info', 'third_party_odds'] else os.path.join(PLUGIN_ROOT, 'data', dt)
+        
+        if not os.path.exists(persistence_dir):
+            stats[dt] = {'file_count': 0, 'total_size': 0}
+            continue
+        
+        files = glob.glob(os.path.join(persistence_dir, '**', '*.json'), recursive=True)
+        file_count = len(files)
+        type_size = sum(os.path.getsize(f) for f in files if os.path.exists(f))
+        
+        total_files += file_count
+        total_size += type_size
+        
+        # 提取日期
+        for f in files:
+            parts = f.split(os.sep)
+            for part in parts:
+                if len(part) == 10 and part[4] == '-' and part[7] == '-':
+                    all_dates.append(part)
+                    break
+        
+        stats[dt] = {
+            'file_count': file_count,
+            'total_size': type_size,
+            'total_size_mb': round(type_size / 1024 / 1024, 2),
+        }
+    
+    return {
+        'success': True,
+        'stats': stats,
+        'total': {
+            'file_count': total_files,
+            'total_size': total_size,
+            'total_size_mb': round(total_size / 1024 / 1024, 2),
+        },
+        'date_range': {
+            'earliest': min(all_dates) if all_dates else None,
+            'latest': max(all_dates) if all_dates else None,
+            'unique_dates': len(set(all_dates)),
+        },
+        'message': f'持久化数据统计：共{total_files}个文件，{round(total_size/1024/1024, 2)}MB，覆盖{len(set(all_dates))}天',
+    }
+
 
 if __name__ == '__main__':
     mcp.run()

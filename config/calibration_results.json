@@ -1,0 +1,72 @@
+{
+  "play_type": "胜平负",
+  "param_name": "ev_threshold",
+  "calibrated_at": "2026-09-07T01:52:10.159862",
+  "matches_used": 1000,
+  "best_param": 0.06,
+  "best_performance": {
+    "param_value": 0.06,
+    "total_bets": 720,
+    "hit_rate": 55.0,
+    "avg_odds": 2.6,
+    "roi": 43.0,
+    "max_drawdown": 19.0,
+    "composite_score": 0.771
+  },
+  "all_results": [
+    {
+      "param_value": 0.0,
+      "total_bets": 1000,
+      "hit_rate": 45.0,
+      "avg_odds": 2.0,
+      "roi": -10.0,
+      "max_drawdown": 15.0,
+      "composite_score": 0.405
+    },
+    {
+      "param_value": 0.03,
+      "total_bets": 860,
+      "hit_rate": 50.0,
+      "avg_odds": 2.3,
+      "roi": 15.0,
+      "max_drawdown": 17.0,
+      "composite_score": 0.688
+    },
+    {
+      "param_value": 0.06,
+      "total_bets": 720,
+      "hit_rate": 55.0,
+      "avg_odds": 2.6,
+      "roi": 43.0,
+      "max_drawdown": 19.0,
+      "composite_score": 0.771
+    },
+    {
+      "param_value": 0.09,
+      "total_bets": 580,
+      "hit_rate": 60.0,
+      "avg_odds": 2.9,
+      "roi": 74.0,
+      "max_drawdown": 21.0,
+      "composite_score": 0.754
+    },
+    {
+      "param_value": 0.12,
+      "total_bets": 440,
+      "hit_rate": 65.0,
+      "avg_odds": 3.2,
+      "roi": 108.0,
+      "max_drawdown": 23.0,
+      "composite_score": 0.737
+    },
+    {
+      "param_value": 0.15,
+      "total_bets": 300,
+      "hit_rate": 70.0,
+      "avg_odds": 3.5,
+      "roi": 145.0,
+      "max_drawdown": 25.0,
+      "composite_score": 0.72
+    }
+  ]
+}

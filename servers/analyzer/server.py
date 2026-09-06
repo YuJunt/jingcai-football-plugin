@@ -40,6 +40,7 @@ except ImportError:
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'data')
 HISTORY_DIR = os.path.join(DATA_DIR, 'history')
+PLUGIN_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
 
 def load_json(filepath):
     """加载JSON文件，失败返回None"""
@@ -92,6 +93,20 @@ def poisson_predict(lambda_home: float, lambda_away: float, max_goals: int = 6) 
     Returns:
         比分概率矩阵、胜平负概率、总进球概率
     """
+    # 参数校验
+    if lambda_home is None or lambda_away is None:
+        return make_error_response("lambda_home和lambda_away不能为空", "validation", "请提供主队和客队的预期进球数")
+    try:
+        lambda_home = float(lambda_home)
+        lambda_away = float(lambda_away)
+        max_goals = int(max_goals)
+    except (ValueError, TypeError):
+        return make_error_response("参数类型错误", "validation", "lambda_home/lambda_away必须是数字，max_goals必须是整数")
+    if lambda_home < 0 or lambda_away < 0:
+        return make_error_response("lambda不能为负数", "validation", "预期进球数必须>=0")
+    if max_goals < 1 or max_goals > 15:
+        return make_error_response("max_goals超出范围", "validation", "最大进球数必须在1到15之间")
+    
     # 比分概率矩阵
     score_matrix = {}
     for h in range(max_goals + 1):
@@ -146,6 +161,19 @@ def dixon_coles(home_odds: float, draw_odds: float, away_odds: float, rho: float
     Returns:
         修正后的比分概率、胜平负概率
     """
+    # 参数校验
+    if home_odds is None or draw_odds is None or away_odds is None:
+        return make_error_response("赔率不能为空", "validation", "请提供主胜、平局、客胜赔率")
+    try:
+        home_odds = float(home_odds)
+        draw_odds = float(draw_odds)
+        away_odds = float(away_odds)
+        rho = float(rho)
+    except (ValueError, TypeError):
+        return make_error_response("参数类型错误", "validation", "赔率和rho必须是数字")
+    if home_odds <= 0 or draw_odds <= 0 or away_odds <= 0:
+        return make_error_response("赔率必须大于0", "validation", "所有赔率必须>0")
+    
     # 从赔率推导λ（简化版）
     probs, payout = remove_vig([home_odds, draw_odds, away_odds])
     p_home, p_draw, p_away = probs
@@ -217,8 +245,18 @@ def calculate_ev(model_prob: float, odds: float) -> dict:
     Returns:
         EV值、隐含概率、价值判断
     """
+    # 参数校验
+    if model_prob is None or odds is None:
+        return make_error_response("model_prob和odds不能为空", "validation", "请提供模型概率和赔率")
+    try:
+        model_prob = float(model_prob)
+        odds = float(odds)
+    except (ValueError, TypeError):
+        return make_error_response("参数类型错误", "validation", "model_prob和odds必须是数字")
+    if model_prob < 0 or model_prob > 1:
+        return make_error_response("model_prob超出范围", "validation", "模型概率必须在0到1之间")
     if odds <= 0:
-        return {'error': '赔率必须大于0'}
+        return make_error_response("赔率必须大于0", "validation", "赔率必须>0")
     
     ev = model_prob * odds - 1
     implied_prob = 1 / odds
@@ -260,8 +298,21 @@ def calculate_kelly(model_prob: float, odds: float, fraction: float = 0.25) -> d
     Returns:
         凯利仓位、全凯利、建议仓位
     """
+    # 参数校验
+    if model_prob is None or odds is None:
+        return make_error_response("model_prob和odds不能为空", "validation", "请提供模型概率和赔率")
+    try:
+        model_prob = float(model_prob)
+        odds = float(odds)
+        fraction = float(fraction)
+    except (ValueError, TypeError):
+        return make_error_response("参数类型错误", "validation", "model_prob/odds/fraction必须是数字")
+    if model_prob < 0 or model_prob > 1:
+        return make_error_response("model_prob超出范围", "validation", "模型概率必须在0到1之间")
     if odds <= 1:
-        return {'error': '赔率必须大于1'}
+        return make_error_response("赔率必须大于1", "validation", "赔率必须>1")
+    if fraction <= 0 or fraction > 1:
+        return make_error_response("fraction超出范围", "validation", "分数凯利必须在0到1之间")
     
     b = odds - 1  # 净赔率
     p = model_prob
@@ -302,6 +353,21 @@ def adjust_lambda(base_home: float, base_away: float, factors: dict) -> dict:
     Returns:
         调整后的λ、总进球、公平让球、调整明细
     """
+    # 参数校验
+    if base_home is None or base_away is None:
+        return make_error_response("base_home和base_away不能为空", "validation", "请提供主队和客队的基础λ")
+    if factors is None:
+        factors = {}
+    if not isinstance(factors, dict):
+        return make_error_response("factors必须是字典", "validation", "调整因子必须是字典类型")
+    try:
+        base_home = float(base_home)
+        base_away = float(base_away)
+    except (ValueError, TypeError):
+        return make_error_response("参数类型错误", "validation", "base_home和base_away必须是数字")
+    if base_home < 0 or base_away < 0:
+        return make_error_response("λ不能为负数", "validation", "基础λ必须>=0")
+    
     home_lambda = base_home
     away_lambda = base_away
     adjustments = []
@@ -358,6 +424,10 @@ def ensemble_predict(match_data: dict) -> dict:
     Returns:
         集成概率、各模型概率、置信度
     """
+    # 参数校验
+    if match_data is None or not isinstance(match_data, dict):
+        return make_error_response("match_data不能为空且必须是字典", "validation", "请提供包含odds的比赛数据字典")
+    
     odds = match_data.get('odds', {})
     spf_odds = odds.get('胜平负', {}).get('odds', [0, 0, 0])
     
@@ -374,19 +444,21 @@ def ensemble_predict(match_data: dict) -> dict:
     lambda_home = (total_goals + goal_diff) / 2
     lambda_away = (total_goals - goal_diff) / 2
     
-    poisson_result = poisson_predict(lambda_home, lambda_away)
+    poisson_result = poisson_predict.fn(lambda_home=lambda_home, lambda_away=lambda_away)
+    poisson_data = poisson_result.get('data', poisson_result)
     poisson_probs = [
-        poisson_result['result_probs']['主胜'],
-        poisson_result['result_probs']['平局'],
-        poisson_result['result_probs']['客胜'],
+        poisson_data['result_probs']['主胜'],
+        poisson_data['result_probs']['平局'],
+        poisson_data['result_probs']['客胜'],
     ]
     
     # 模型3：Dixon-Coles 25%
-    dc_result = dixon_coles(spf_odds[0], spf_odds[1], spf_odds[2])
+    dc_result = dixon_coles.fn(home_odds=spf_odds[0], draw_odds=spf_odds[1], away_odds=spf_odds[2])
+    dc_data = dc_result.get('data', dc_result)
     dc_probs = [
-        dc_result['result_probs']['主胜'],
-        dc_result['result_probs']['平局'],
-        dc_result['result_probs']['客胜'],
+        dc_data['result_probs']['主胜'],
+        dc_data['result_probs']['平局'],
+        dc_data['result_probs']['客胜'],
     ]
     
     # 模型4：贝叶斯（简化，用历史数据调整）15%
@@ -446,6 +518,10 @@ def multi_perspective_analysis(match_data: dict) -> dict:
     Returns:
         5视角分析报告、综合评分、共识
     """
+    # 参数校验
+    if match_data is None or not isinstance(match_data, dict):
+        return make_error_response("match_data不能为空且必须是字典", "validation", "请提供包含odds/info的比赛数据字典")
+    
     # 实际实现中应调用5个agent
     # 这里返回框架
     return {
@@ -477,11 +553,61 @@ def reverse_indicator(match_data: dict) -> dict:
     Returns:
         反向信号列表、风险提示
     """
+    # 参数校验
+    if match_data is None or not isinstance(match_data, dict):
+        return make_error_response("match_data不能为空且必须是字典", "validation", "请提供包含odds/support的比赛数据字典")
+    
     signals = []
-    odds = match_data.get('odds', [0, 0, 0])
-    support = match_data.get('support', [0, 0, 0])
+    
+    # 智能提取odds：支持列表和字典两种格式
+    odds_raw = match_data.get('odds', [0, 0, 0])
+    if isinstance(odds_raw, dict):
+        # 字典格式：{'胜平负': {'odds': [...]}}，尝试提取胜平负赔率
+        spf_odds = odds_raw.get('胜平负', odds_raw.get('spf', {}))
+        if isinstance(spf_odds, dict):
+            odds = spf_odds.get('odds', [0, 0, 0])
+        elif isinstance(spf_odds, list):
+            odds = spf_odds
+        else:
+            odds = [0, 0, 0]
+    elif isinstance(odds_raw, list):
+        odds = odds_raw
+    else:
+        odds = [0, 0, 0]
+    
+    # 确保odds是数字列表
+    odds = [float(o) if isinstance(o, (int, float)) and o > 0 else 0 for o in odds]
+    if len(odds) < 3:
+        odds.extend([0] * (3 - len(odds)))
+    
+    # 智能提取support：支持列表、字典和字符串
+    support_raw = match_data.get('support', [0, 0, 0])
+    if isinstance(support_raw, dict):
+        support = [float(support_raw.get(k, 0)) for k in ['home', 'draw', 'away']]
+    elif isinstance(support_raw, list):
+        support = [float(s) if isinstance(s, (int, float)) else 0 for s in support_raw]
+    elif isinstance(support_raw, str):
+        # 字符串格式："75,15,10"
+        try:
+            support = [float(s) for s in support_raw.split(',')]
+        except:
+            support = [0, 0, 0]
+    else:
+        support = [0, 0, 0]
+    if len(support) < 3:
+        support.extend([0] * (3 - len(support)))
+    
+    # 提取初盘和终盘
     opening = match_data.get('opening_odds', [])
     closing = match_data.get('closing_odds', [])
+    if isinstance(opening, list):
+        opening = [float(o) if isinstance(o, (int, float)) and o > 0 else 0 for o in opening]
+    else:
+        opening = []
+    if isinstance(closing, list):
+        closing = [float(c) if isinstance(c, (int, float)) and c > 0 else 0 for c in closing]
+    else:
+        closing = []
     
     labels = ['主胜', '平局', '客胜']
     
@@ -568,6 +694,10 @@ def match_pace_analysis(match_data: dict) -> dict:
     Returns:
         节奏分析报告、球队风格画像
     """
+    # 参数校验
+    if match_data is None:
+        return make_error_response('match_data不能为空', 'validation', '请提供match_data参数')
+
     return {
         'home_team_pace': {
             'first_half_goals_avg': 0,
@@ -607,6 +737,10 @@ def odds_divergence(match_data: dict) -> dict:
     Returns:
         分歧度分析、异常赔率识别
     """
+    # 参数校验
+    if match_data is None:
+        return make_error_response('match_data不能为空', 'validation', '请提供match_data参数')
+
     return {
         'divergence': {
             'home': {'std': 0, 'cv': 0, 'level': '待分析'},
@@ -634,6 +768,12 @@ def referee_analysis(league: str, referee: str = None) -> dict:
     Returns:
         裁判执法风格分析、对比赛的影响预测
     """
+    # 参数校验
+    if league is None:
+        return make_error_response('league不能为空', 'validation', '请提供league参数')
+    if referee is not None and not isinstance(referee, (str, int, float, list, dict)):
+        return make_error_response('referee类型错误', 'validation', '请提供正确的类型')
+
     return {
         'referee': referee or '未知',
         'league': league,
@@ -674,6 +814,27 @@ def monte_carlo_simulate(probs: list, odds: list = None, n_simulations: int = 10
     Returns:
         模拟结果（胜率/平均收益/收益分布/风险指标）
     """
+    # 参数校验
+    if probs is None or not isinstance(probs, list):
+        return make_error_response("probs不能为空且必须是列表", "validation", "请提供概率列表")
+    if len(probs) == 0:
+        return make_error_response("probs不能为空列表", "validation", "请提供至少一个概率")
+    if odds is not None and not isinstance(odds, list):
+        return make_error_response("odds必须是列表", "validation", "赔率必须是列表类型")
+    try:
+        n_simulations = int(n_simulations)
+    except (ValueError, TypeError):
+        return make_error_response("n_simulations必须是整数", "validation", "模拟次数必须是整数")
+    if n_simulations < 100 or n_simulations > 1000000:
+        return make_error_response("n_simulations超出范围", "validation", "模拟次数必须在100到1000000之间")
+    # 验证概率范围
+    for i, p in enumerate(probs):
+        try:
+            p = float(p)
+            if p < 0 or p > 1:
+                return make_error_response(f"第{i+1}个概率超出范围", "validation", "概率必须在0到1之间")
+        except (ValueError, TypeError):
+            return make_error_response(f"第{i+1}个概率类型错误", "validation", "概率必须是数字")
     if not probs:
         return {'error': '概率列表不能为空'}
     
@@ -760,6 +921,12 @@ def brier_score(predictions: list, actuals: list) -> dict:
     Returns:
         Brier分数、校准度、分辨率
     """
+    # 参数校验
+    if predictions is None:
+        return make_error_response('predictions不能为空', 'validation', '请提供predictions参数')
+    if actuals is None:
+        return make_error_response('actuals不能为空', 'validation', '请提供actuals参数')
+
     if len(predictions) != len(actuals):
         return {'error': '预测和实际结果数量不匹配'}
     
@@ -833,6 +1000,10 @@ def multi_agent_debate(match_data: dict) -> dict:
     Returns:
         各agent观点、辩论过程、最终共识、分歧点
     """
+    # 参数校验
+    if match_data is None:
+        return make_error_response('match_data不能为空', 'validation', '请提供match_data参数')
+
     home = match_data.get('home', '主队')
     away = match_data.get('away', '客队')
     league = match_data.get('league', '')
@@ -1140,6 +1311,10 @@ def odds_movement_pattern(odds_history: dict) -> dict:
     Returns:
         变动模式识别、信号解读
     """
+    # 参数校验
+    if odds_history is None:
+        return make_error_response('odds_history不能为空', 'validation', '请提供odds_history参数')
+
     return {
         'pattern': '待分析',  # 主动变盘/被动变盘/稳定
         'signals': [],
@@ -1164,6 +1339,12 @@ def parlay_ev(legs_odds: list, legs_probs: list) -> dict:
     Returns:
         串关EV、理论概率、抽水叠加分析
     """
+    # 参数校验
+    if legs_odds is None:
+        return make_error_response('legs_odds不能为空', 'validation', '请提供legs_odds参数')
+    if legs_probs is None:
+        return make_error_response('legs_probs不能为空', 'validation', '请提供legs_probs参数')
+
     if len(legs_odds) != len(legs_probs):
         return {'error': '赔率和概率数量不匹配'}
     
@@ -1228,6 +1409,15 @@ def play_specific_analysis(match_data: dict, play_type: str) -> dict:
     Returns:
         玩法专属分析报告、选项评价、推荐
     """
+        # 参数校验
+    if match_data is None or not isinstance(match_data, dict):
+        return make_error_response("match_data不能为空且必须是字典", "validation", "请提供比赛数据字典")
+    if play_type is None or not isinstance(play_type, str):
+        return make_error_response("play_type不能为空且必须是字符串", "validation", "请提供玩法类型（胜平负/让球胜平负/总进球/比分/半全场）")
+    valid_plays = ['胜平负', '让球胜平负', '总进球', '比分', '半全场']
+    if play_type not in valid_plays:
+        return make_error_response(f"play_type必须是{valid_plays}之一", "validation", "请提供有效的玩法类型")
+    
     play_configs = {
         '胜平负': {'ev_threshold': 0.05, 'kelly': 0.25, 'max_legs': 8, 'options': ['主胜', '平局', '客胜']},
         '让球胜平负': {'ev_threshold': 0.05, 'kelly': 0.20, 'max_legs': 8, 'options': ['让球胜', '让球平', '让球负']},
@@ -1265,6 +1455,10 @@ def generate_pre_match_checklist(log_data: dict = None) -> dict:
     Returns:
         赛前检查清单、必查项、常见错误提醒
     """
+    # 参数校验
+    if log_data is not None and not isinstance(log_data, (str, int, float, list, dict)):
+        return make_error_response('log_data类型错误', 'validation', '请提供正确的类型')
+
     checklist = {
         '数据完整性': [
             '5种玩法赔率是否全部获取？',
@@ -1332,6 +1526,19 @@ def conditional_prob_half_full(lambda_home: float, lambda_away: float, match_pac
     Returns:
         半全场9种结果的条件概率
     """
+        # 参数校验
+    if lambda_home is None or lambda_away is None:
+        return make_error_response("lambda_home和lambda_away不能为空", "validation", "请提供主队和客队的预期进球数")
+    try:
+        lambda_home = float(lambda_home)
+        lambda_away = float(lambda_away)
+    except (ValueError, TypeError):
+        return make_error_response("参数类型错误", "validation", "lambda_home和lambda_away必须是数字")
+    if lambda_home < 0 or lambda_away < 0:
+        return make_error_response("λ不能为负数", "validation", "预期进球数必须>=0")
+    if match_pace is None:
+        match_pace = 'normal'
+    
     import math
     from itertools import product
     
@@ -1426,6 +1633,16 @@ def update_bayesian_strength(team: str, goals_for: int, goals_against: int, oppo
     Returns:
         更新后的球队强度
     """
+    # 参数校验
+    if team is None:
+        return make_error_response('team不能为空', 'validation', '请提供team参数')
+    if goals_for is None:
+        return make_error_response('goals_for不能为空', 'validation', '请提供goals_for参数')
+    if goals_against is None:
+        return make_error_response('goals_against不能为空', 'validation', '请提供goals_against参数')
+    if opponent is not None and not isinstance(opponent, (str, int, float, list, dict)):
+        return make_error_response('opponent类型错误', 'validation', '请提供正确的类型')
+
     strength_file = os.path.join(DATA_DIR, 'team_ratings.json')
     data = load_json(strength_file) or {}
     
@@ -1480,6 +1697,14 @@ def update_elo_rating(team: str, opponent: str, result: str) -> dict:
     Returns:
         更新后的Elo评级
     """
+    # 参数校验
+    if team is None:
+        return make_error_response('team不能为空', 'validation', '请提供team参数')
+    if opponent is None:
+        return make_error_response('opponent不能为空', 'validation', '请提供opponent参数')
+    if result is None:
+        return make_error_response('result不能为空', 'validation', '请提供result参数')
+
     strength_file = os.path.join(DATA_DIR, 'team_ratings.json')
     data = load_json(strength_file) or {}
     
@@ -1532,6 +1757,16 @@ def track_odds_clv(match_id: str, opening_odds: list, closing_odds: list, actual
     Returns:
         CLV分析结果
     """
+    # 参数校验
+    if match_id is None:
+        return make_error_response('match_id不能为空', 'validation', '请提供match_id参数')
+    if opening_odds is None:
+        return make_error_response('opening_odds不能为空', 'validation', '请提供opening_odds参数')
+    if closing_odds is None:
+        return make_error_response('closing_odds不能为空', 'validation', '请提供closing_odds参数')
+    if actual_result is not None and not isinstance(actual_result, (str, int, float, list, dict)):
+        return make_error_response('actual_result类型错误', 'validation', '请提供正确的类型')
+
     clv_file = os.path.join(DATA_DIR, 'odds_clv_tracker.json')
     data = load_json(clv_file) or {}
     
@@ -1617,6 +1852,18 @@ def history_analytics(league: str, team: str = None, team_a: str = None, team_b:
     Returns:
         历史数据分析结果
     """
+    # 参数校验
+    if league is None:
+        return make_error_response('league不能为空', 'validation', '请提供league参数')
+    if team is not None and not isinstance(team, (str, int, float, list, dict)):
+        return make_error_response('team类型错误', 'validation', '请提供正确的类型')
+    if team_a is not None and not isinstance(team_a, (str, int, float, list, dict)):
+        return make_error_response('team_a类型错误', 'validation', '请提供正确的类型')
+    if team_b is not None and not isinstance(team_b, (str, int, float, list, dict)):
+        return make_error_response('team_b类型错误', 'validation', '请提供正确的类型')
+    if analysis_type is None:
+        return make_error_response('analysis_type不能为空', 'validation', '请提供analysis_type参数')
+
     history_file = os.path.join(HISTORY_DIR, f'{league}_history.json')
     matches = load_json(history_file)
     
@@ -1696,6 +1943,12 @@ def historical_stats_deep(league: str, stat_type: str = 'all') -> dict:
     Returns:
         深度统计结果
     """
+    # 参数校验
+    if league is None:
+        return make_error_response('league不能为空', 'validation', '请提供league参数')
+    if stat_type is None:
+        return make_error_response('stat_type不能为空', 'validation', '请提供stat_type参数')
+
     history_file = os.path.join(HISTORY_DIR, f'{league}_history.json')
     matches = load_json(history_file)
     
@@ -1753,9 +2006,16 @@ def league_focus_analysis(league: str, focus_type: str = 'overview') -> dict:
     Returns:
         联赛专攻分析结果
     """
+    # 参数校验
+    if league is None:
+        return make_error_response('league不能为空', 'validation', '请提供league参数')
+    if focus_type is None:
+        return make_error_response('focus_type不能为空', 'validation', '请提供focus_type参数')
+
     # 加载联赛特征
     league_file = os.path.join(DATA_DIR, 'league_features.json')
-    features = load_json(league_file) or {}
+    features_raw = load_json(league_file)
+    features = features_raw if isinstance(features_raw, dict) else {}
     
     # 加载历史数据
     history_file = os.path.join(HISTORY_DIR, f'{league}_history.json')
@@ -1813,6 +2073,16 @@ def league_focus_analysis(league: str, focus_type: str = 'overview') -> dict:
 @mcp.tool()
 @safe_tool
 def strategy_ab_test(strategy_a: dict, strategy_b: dict, league: str = None, n_matches: int = 100) -> dict:
+    # 参数校验
+    if strategy_a is None:
+        return make_error_response('strategy_a不能为空', 'validation', '请提供strategy_a参数')
+    if strategy_b is None:
+        return make_error_response('strategy_b不能为空', 'validation', '请提供strategy_b参数')
+    if league is not None and not isinstance(league, (str, int, float, list, dict)):
+        return make_error_response('league类型错误', 'validation', '请提供正确的类型')
+    if n_matches is None:
+        return make_error_response('n_matches不能为空', 'validation', '请提供n_matches参数')
+
     """
     策略A/B测试框架
     
@@ -1918,6 +2188,12 @@ def htft_frequency_calibration(model_probs: dict, league_code: str = None) -> di
     Returns:
         校准后的9种组合概率、核心区间概率、平开头概率、推荐组合
     """
+    # 参数校验
+    if model_probs is None:
+        return make_error_response('model_probs不能为空', 'validation', '请提供model_probs参数')
+    if league_code is not None and not isinstance(league_code, (str, int, float, list, dict)):
+        return make_error_response('league_code类型错误', 'validation', '请提供正确的类型')
+
     import json
     
     # 加载频率基准库
@@ -1992,6 +2268,14 @@ def second_half_goal_diff(team: str, league: str, recent_matches: int = 10) -> d
     Returns:
         SHGD指标、下半场进球/失球、半场平局后胜率、推荐方向
     """
+    # 参数校验
+    if team is None:
+        return make_error_response('team不能为空', 'validation', '请提供team参数')
+    if league is None:
+        return make_error_response('league不能为空', 'validation', '请提供league参数')
+    if recent_matches is None:
+        return make_error_response('recent_matches不能为空', 'validation', '请提供recent_matches参数')
+
     import json
     
     # 从历史数据计算
@@ -2109,6 +2393,14 @@ def team_half_time_profile(team: str, league: str, recent_matches: int = 20) -> 
     Returns:
         半场胜率/平局率/负率、开局类型、推荐半全场方向
     """
+    # 参数校验
+    if team is None:
+        return make_error_response('team不能为空', 'validation', '请提供team参数')
+    if league is None:
+        return make_error_response('league不能为空', 'validation', '请提供league参数')
+    if recent_matches is None:
+        return make_error_response('recent_matches不能为空', 'validation', '请提供recent_matches参数')
+
     import json
     
     history_file = os.path.join(HISTORY_DIR, f'{league}_history.json')
@@ -2271,6 +2563,12 @@ def score_frequency_calibration(model_score_probs: dict, league_code: str = None
     Returns:
         校准后的比分概率、Top8比分、收敛度、推荐比分
     """
+    # 参数校验
+    if model_score_probs is None:
+        return make_error_response('model_score_probs不能为空', 'validation', '请提供model_score_probs参数')
+    if league_code is not None and not isinstance(league_code, (str, int, float, list, dict)):
+        return make_error_response('league_code类型错误', 'validation', '请提供正确的类型')
+
     import json
     
     freq_file = os.path.join(DATA_DIR, 'score_frequency.json')
@@ -2350,6 +2648,12 @@ def jingcai_payout_calibrator(odds_list: list, play_type: str = '胜平负') -> 
     Returns:
         竞彩返奖率、去水后隐含概率、与国际95%去水的差异、EV修正建议
     """
+    # 参数校验
+    if odds_list is None:
+        return make_error_response('odds_list不能为空', 'validation', '请提供odds_list参数')
+    if play_type is None:
+        return make_error_response('play_type不能为空', 'validation', '请提供play_type参数')
+
     # 计算实际返奖率
     inv_sum = sum(1.0 / o for o in odds_list if o > 0)
     actual_payout = 1.0 / inv_sum if inv_sum > 0 else 0
@@ -2415,6 +2719,16 @@ def handicap_language_analyzer(opening_handicap: str, closing_handicap: str,
     Returns:
         盘口变动模式、机构意图、信号方向、置信度、推荐操作
     """
+    # 参数校验
+    if opening_handicap is None:
+        return make_error_response('opening_handicap不能为空', 'validation', '请提供初盘盘口')
+    if closing_handicap is None:
+        return make_error_response('closing_handicap不能为空', 'validation', '请提供终盘盘口')
+    if opening_water is None:
+        return make_error_response('opening_water不能为空', 'validation', '请提供初盘水位')
+    if closing_water is None:
+        return make_error_response('closing_water不能为空', 'validation', '请提供终盘水位')
+    
     import json
     
     conv_file = os.path.join(DATA_DIR, 'eu_ah_conversion.json')
@@ -2510,6 +2824,14 @@ def theoretical_vs_actual_handicap(home_elo: float, away_elo: float,
     Returns:
         理论盘口、实际盘口、偏离方向、偏离程度、价值信号
     """
+    # 参数校验
+    if home_elo is None:
+        return make_error_response('home_elo不能为空', 'validation', '请提供主队Elo评分')
+    if away_elo is None:
+        return make_error_response('away_elo不能为空', 'validation', '请提供客队Elo评分')
+    if actual_handicap is None:
+        return make_error_response('actual_handicap不能为空', 'validation', '请提供实际盘口')
+    
     import json
     
     conv_file = os.path.join(DATA_DIR, 'eu_ah_conversion.json')
@@ -2586,6 +2908,12 @@ def total_goals_league_calibration(model_goal_probs: dict, league_code: str = No
     Returns:
         校准后的档位概率、最可能档位、大球率、推荐档位
     """
+    # 参数校验
+    if model_goal_probs is None:
+        return make_error_response('model_goal_probs不能为空', 'validation', '请提供model_goal_probs参数')
+    if league_code is not None and not isinstance(league_code, (str, int, float, list, dict)):
+        return make_error_response('league_code类型错误', 'validation', '请提供正确的类型')
+
     import json
     
     dist_file = os.path.join(DATA_DIR, 'league_goal_distribution.json')
@@ -2669,6 +2997,14 @@ def time_weighted_poisson(team_matches: list, half_life_days: int = 30, max_goal
     Returns:
         时间加权λ、泊松进球分布、近期状态趋势
     """
+    # 参数校验
+    if team_matches is None:
+        return make_error_response('team_matches不能为空', 'validation', '请提供team_matches参数')
+    if half_life_days is None:
+        return make_error_response('half_life_days不能为空', 'validation', '请提供half_life_days参数')
+    if max_goals is None:
+        return make_error_response('max_goals不能为空', 'validation', '请提供max_goals参数')
+
     import math
     from datetime import datetime
     
@@ -2777,6 +3113,14 @@ def attack_defense_matchup(home_team_stats: dict, away_team_stats: dict, home_ad
     Returns:
         攻防匹配λ、预期比分、胜平负概率
     """
+    # 参数校验
+    if home_team_stats is None:
+        return make_error_response('home_team_stats不能为空', 'validation', '请提供home_team_stats参数')
+    if away_team_stats is None:
+        return make_error_response('away_team_stats不能为空', 'validation', '请提供away_team_stats参数')
+    if home_advantage is None:
+        return make_error_response('home_advantage不能为空', 'validation', '请提供home_advantage参数')
+
     import math
     
     h_gf = home_team_stats.get('avg_goals_for', 1.5)
@@ -2850,6 +3194,14 @@ def expected_goal_difference(lambda_home: float, lambda_away: float, handicap: f
     Returns:
         预期净胜值、净胜球分布、让球胜平负概率、推荐
     """
+    # 参数校验
+    if lambda_home is None:
+        return make_error_response('lambda_home不能为空', 'validation', '请提供lambda_home参数')
+    if lambda_away is None:
+        return make_error_response('lambda_away不能为空', 'validation', '请提供lambda_away参数')
+    if handicap is None:
+        return make_error_response('handicap不能为空', 'validation', '请提供handicap参数')
+
     import math
     
     # 预期净胜值
@@ -2933,6 +3285,10 @@ def weighted_scorecard(match_data: dict) -> dict:
     Returns:
         15维度评分、加权总分、推荐、一票否决信号
     """
+    # 参数校验
+    if match_data is None:
+        return make_error_response('match_data不能为空', 'validation', '请提供match_data参数')
+
     # 15维度权重
     dimensions = {
         'home_advantage': {'weight': 0.10, 'name': '主场优势'},
@@ -3061,6 +3417,16 @@ def style_matchup(home_style: str, away_style: str, home_attack: float = None, a
     Returns:
         匹配类型、预期进球范围、胜平负倾向、推荐玩法
     """
+    # 参数校验
+    if home_style is None:
+        return make_error_response('home_style不能为空', 'validation', '请提供home_style参数')
+    if away_style is None:
+        return make_error_response('away_style不能为空', 'validation', '请提供away_style参数')
+    if home_attack is not None and not isinstance(home_attack, (str, int, float, list, dict)):
+        return make_error_response('home_attack类型错误', 'validation', '请提供正确的类型')
+    if away_attack is not None and not isinstance(away_attack, (str, int, float, list, dict)):
+        return make_error_response('away_attack类型错误', 'validation', '请提供正确的类型')
+
     style_map = {
         'attacking': '进攻型',
         'defensive': '防守型',
@@ -3163,7 +3529,21 @@ def bayesian_shrinkage(team_stats: dict, league_average: dict, sample_size: int,
     Returns:
         收缩后参数、收缩量、原始vs收缩对比
     """
-    # 自适应收缩强度：样本越小，收缩越强
+        # 参数校验
+    if team_stats is None or not isinstance(team_stats, dict):
+        return make_error_response("team_stats不能为空且必须是字典", "validation", "请提供球队统计数据")
+    if league_average is None or not isinstance(league_average, dict):
+        return make_error_response("league_average不能为空且必须是字典", "validation", "请提供联赛平均数据")
+    if sample_size is None:
+        return make_error_response("sample_size不能为空", "validation", "请提供样本量")
+    try:
+        sample_size = int(sample_size)
+        shrinkage_strength = float(shrinkage_strength)
+    except (ValueError, TypeError):
+        return make_error_response("参数类型错误", "validation", "sample_size必须是整数，shrinkage_strength必须是数字")
+    if sample_size < 0:
+        return make_error_response("sample_size不能为负数", "validation", "样本量必须>=0")
+# 自适应收缩强度：样本越小，收缩越强
     # 10场以下：收缩0.5；10-20场：0.3；20场以上：0.15
     if sample_size < 10:
         adaptive_shrinkage = 0.5
@@ -3235,6 +3615,14 @@ def ml_predict(home_recent: dict, away_recent: dict, odds: list = None) -> dict:
     用10万场历史数据训练，1X2准确率55-63%
     需先运行 data/train_ml_model.py 训练模型
     """
+    # 参数校验
+    if home_recent is None or not isinstance(home_recent, dict):
+        return make_error_response("home_recent不能为空且必须是字典", "validation", "请提供主队近期数据")
+    if away_recent is None or not isinstance(away_recent, dict):
+        return make_error_response("away_recent不能为空且必须是字典", "validation", "请提供客队近期数据")
+    if odds is not None and not isinstance(odds, list):
+        return make_error_response("odds必须是列表", "validation", "赔率必须是列表类型")
+    
     import pickle
     
     model_path = os.path.join(DATA_DIR, 'ml_model.pkl')
@@ -3323,6 +3711,12 @@ def glicko2_rating(team: str, match_results: list, initial_rating: float = 1500.
     Glicko-2评分系统（Elo升级版）
     比经典Elo多了评分偏差RD（置信度）和波动率σ，新球队RD高（不确定），比赛越多RD越低
     """
+    # 参数校验
+    if team is None:
+        return make_error_response('team不能为空', 'validation', '请提供球队名称')
+    if match_results is None:
+        return make_error_response('match_results不能为空', 'validation', '请提供比赛结果列表')
+    
     import math
     
     GLICKO_SCALE = 173.7178
@@ -3392,6 +3786,12 @@ def proxy_xg(shots: int, shots_on_target: int, corners: int = 0,
     代理xG模型（免费，无需付费数据源）
     用射门/射正/角球数据估算预期进球：xG ≈ 射正×0.30 + 射门×0.05 + 角球×0.02 + 点球×0.79
     """
+    # 参数校验
+    if shots is None:
+        return make_error_response('shots不能为空', 'validation', '请提供射门数')
+    if shots_on_target is None:
+        return make_error_response('shots_on_target不能为空', 'validation', '请提供射正数')
+    
     xg_sot = shots_on_target * league_avg_conversion
     xg_shots = shots * 0.05
     xg_corners = corners * 0.02
@@ -3424,6 +3824,14 @@ def goal_difference_distribution(team: str, league: str, recent_n: int = 20) -> 
     净胜球分布统计工具
     从36联赛10万场历史数据统计球队净胜球分布，用于让球胜平负分析
     """
+    # 参数校验
+    if team is None:
+        return make_error_response('team不能为空', 'validation', '请提供team参数')
+    if league is None:
+        return make_error_response('league不能为空', 'validation', '请提供league参数')
+    if recent_n is None:
+        return make_error_response('recent_n不能为空', 'validation', '请提供recent_n参数')
+
     history_file = os.path.join(HISTORY_DIR, f'{league}_history.json')
     matches = load_json(history_file) or []
     if not matches:
@@ -3483,6 +3891,10 @@ def fund_flow_analysis(snapshots: list) -> dict:
     Returns:
         资金流信号（方向/强度/解读），strength 0=无 1=微弱 2=明显 3=强
     """
+    # 参数校验
+    if snapshots is None:
+        return make_error_response('snapshots不能为空', 'validation', '请提供snapshots参数')
+
     return analyze_fund_flow(snapshots)
 
 
@@ -3522,6 +3934,11 @@ def confidence_batch_filter(candidates: list) -> list:
     Returns:
         通过过滤的候选列表（含confidence字段），按总分降序
     """
+    # 参数校验
+    if candidates is None or not isinstance(candidates, list):
+        return []
+    if len(candidates) == 0:
+        return []
     return batch_confidence_filter(candidates)
 
 
@@ -3565,6 +3982,28 @@ def full_match_analysis(
     Returns:
         完整分析结果：泊松矩阵+集成概率+5玩法EV+最优玩法Top3+反向信号+置信度+推荐
     """
+    # 参数校验
+    if home is None or away is None or not str(home).strip() or not str(away).strip():
+        return make_error_response("home和away不能为空", "validation", "请提供主队和客队名称")
+    home = str(home).strip()
+    away = str(away).strip()
+    league = str(league or "").strip()
+    # 校验赔率参数
+    for name, val in [('home_odds', home_odds), ('draw_odds', draw_odds), ('away_odds', away_odds)]:
+        if val is not None:
+            try:
+                float(val)
+            except (ValueError, TypeError):
+                return make_error_response(f"{name}必须是数字", "validation", f"{name}必须是数字类型")
+    # 校验列表参数
+    for name, val in [('hhad_odds', hhad_odds), ('ttg_odds', ttg_odds), ('support_rate', support_rate)]:
+        if val is not None and not isinstance(val, list):
+            return make_error_response(f"{name}必须是列表", "validation", f"{name}必须是列表类型")
+    # 校验字典参数
+    for name, val in [('crs_odds', crs_odds), ('hafu_odds', hafu_odds), ('third_party', third_party), ('news', news)]:
+        if val is not None and not isinstance(val, dict):
+            return make_error_response(f"{name}必须是字典", "validation", f"{name}必须是字典类型")
+    
     result = {
         'match': f'{home} vs {away}',
         'league': league,
@@ -3627,8 +4066,30 @@ def full_match_analysis(
             lambda_home = _omap[str(_cl)]['lambda_home']
             lambda_away = _omap[str(_cl)]['lambda_away']
         else:
-            lambda_home = max(0.5, min(3.5, p_h * _lavg * 0.95))
-            lambda_away = max(0.5, min(3.0, p_a * _lavg * 0.95))
+            # 【修复】从总进球赔率推导预期总进球，而不是用错误的p_h*avg公式
+            if ttg_odds and len(ttg_odds) >= 8 and all(o > 0 for o in ttg_odds[:8]):
+                # 从总进球赔率计算市场隐含概率分布
+                ttg_imp = []
+                for i in range(8):
+                    if ttg_odds[i] > 0:
+                        ttg_imp.append(1.0 / ttg_odds[i])
+                    else:
+                        ttg_imp.append(0.01)
+                ttg_sum = sum(ttg_imp)
+                ttg_probs = [p / ttg_sum for p in ttg_imp]
+                # 计算预期总进球
+                expected_total = sum(ttg_probs[i] * i for i in range(7)) + ttg_probs[7] * 7.5
+                expected_total = max(1.5, min(4.0, expected_total))
+            else:
+                expected_total = _lavg  # 使用联赛平均总进球
+            
+            # 从胜平负概率推导主客队进球差距
+            goal_diff = (p_h - p_a) * 1.5
+            goal_diff = max(-1.5, min(1.5, goal_diff))
+            
+            # 计算lambda_home和lambda_away
+            lambda_home = max(0.5, min(3.5, (expected_total + goal_diff) / 2))
+            lambda_away = max(0.5, min(3.0, (expected_total - goal_diff) / 2))
         poisson_raw = _poisson(lambda_home, lambda_away, max_goals=6)
         poisson = poisson_raw.get('data', poisson_raw) if isinstance(poisson_raw, dict) else {}
         result['poisson'] = {
@@ -3921,6 +4382,16 @@ def find_similar_matches(home_team: str, away_team: str, league: str = "", limit
     自动匹配历史交锋，返回最近N场的结果、进球、赔率规律
     用于：赛前分析时参考历史对阵规律
     """
+    # 参数校验
+    if home_team is None:
+        return make_error_response('home_team不能为空', 'validation', '请提供home_team参数')
+    if away_team is None:
+        return make_error_response('away_team不能为空', 'validation', '请提供away_team参数')
+    if league is None:
+        return make_error_response('league不能为空', 'validation', '请提供league参数')
+    if limit is None:
+        return make_error_response('limit不能为空', 'validation', '请提供limit参数')
+
     import json, os
     history_dir = os.path.join(PLUGIN_ROOT, 'data', 'history')
     if not os.path.exists(history_dir):
@@ -3981,6 +4452,14 @@ def league_pattern_match(league: str, home_team: str = "", away_team: str = "") 
     分析当前联赛的历史规律：主胜率/平局率/大球率/场均进球/常见比分
     用于：调整模型概率，识别联赛特性
     """
+    # 参数校验
+    if league is None:
+        return make_error_response('league不能为空', 'validation', '请提供league参数')
+    if home_team is None:
+        return make_error_response('home_team不能为空', 'validation', '请提供home_team参数')
+    if away_team is None:
+        return make_error_response('away_team不能为空', 'validation', '请提供away_team参数')
+
     import json, os
     history_dir = os.path.join(PLUGIN_ROOT, 'data', 'history')
     filepath = os.path.join(history_dir, f'{league}_history.json')
@@ -4162,6 +4641,12 @@ def update_team_strength(league: str, match_results: list = None) -> dict:
     用最新赛果更新球队的Elo评分和攻防强度
     用于：模型概率校准，反映球队最新状态
     """
+    # 参数校验
+    if league is None:
+        return make_error_response('league不能为空', 'validation', '请提供league参数')
+    if match_results is not None and not isinstance(match_results, (str, int, float, list, dict)):
+        return make_error_response('match_results类型错误', 'validation', '请提供正确的类型')
+
     import json, os
     ratings_file = os.path.join(PLUGIN_ROOT, 'data', 'team_ratings.json')
     
