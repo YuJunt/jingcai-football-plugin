@@ -15,6 +15,8 @@ jobs:
   release:
     name: 打包并发布
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 允许创建Release和上传资产
     
     steps:
       - name: 检出代码
