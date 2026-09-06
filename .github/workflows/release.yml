@@ -1,0 +1,120 @@
+name: Release - 自动打包发布
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '发布版本号（如 v1.13.0）'
+        required: true
+        default: 'v1.13.0'
+
+jobs:
+  release:
+    name: 打包并发布
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: 获取版本号
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "发布版本: $VERSION"
+      
+      - name: 创建发布包
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "=== 创建发布包 $VERSION ==="
+          
+          # 创建临时目录
+          mkdir -p release/jingcai-football-plugin
+          
+          # 复制必要文件（排除个人数据和缓存）
+          rsync -av --exclude='.git' \
+            --exclude='data/decisions' \
+            --exclude='data/account' \
+            --exclude='data/persistence' \
+            --exclude='data/cache' \
+            --exclude='data/downloads' \
+            --exclude='data/sessions' \
+            --exclude='data/self-evolution' \
+            --exclude='data/odds_snapshots' \
+            --exclude='output' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            --exclude='.DS_Store' \
+            ./ release/jingcai-football-plugin/
+          
+          # 打包
+          cd release
+          zip -r "../jingcai-football-plugin-${VERSION}.zip" jingcai-football-plugin/
+          tar -czf "../jingcai-football-plugin-${VERSION}.tar.gz" jingcai-football-plugin/
+          cd ..
+          
+          # 计算校验和
+          sha256sum "jingcai-football-plugin-${VERSION}.zip" > "jingcai-football-plugin-${VERSION}.zip.sha256"
+          sha256sum "jingcai-football-plugin-${VERSION}.tar.gz" > "jingcai-football-plugin-${VERSION}.tar.gz.sha256"
+          
+          echo "✅ 发布包创建完成"
+          ls -lh jingcai-football-plugin-${VERSION}.*
+      
+      - name: 生成发布说明
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "## 竞彩足球分析预测 Agent Plugin $VERSION" > RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          echo "### 发布信息" >> RELEASE_NOTES.md
+          echo "- 版本: $VERSION" >> RELEASE_NOTES.md
+          echo "- 发布时间: $(date '+%Y-%m-%d %H:%M:%S')" >> RELEASE_NOTES.md
+          echo "- 提交: ${{ github.sha }}" >> RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          echo "### 插件信息" >> RELEASE_NOTES.md
+          echo "- 技能数量: 8个（核心+方法论+5玩法专属+混合过关）" >> RELEASE_NOTES.md
+          echo "- MCP服务器: 9个" >> RELEASE_NOTES.md
+          echo "- MCP工具: 178个" >> RELEASE_NOTES.md
+          echo "- 历史数据: 85454场，31个联赛" >> RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          echo "### 安装方法" >> RELEASE_NOTES.md
+          echo "1. 下载发布包" >> RELEASE_NOTES.md
+          echo "2. 解压到本地目录" >> RELEASE_NOTES.md
+          echo "3. 在支持Agent Plugins的客户端中加载插件" >> RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          echo "### 最近提交" >> RELEASE_NOTES.md
+          git log --oneline -20 >> RELEASE_NOTES.md
+          
+          echo "✅ 发布说明已生成"
+          cat RELEASE_NOTES.md
+      
+      - name: 创建GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: 竞彩足球分析预测 Agent Plugin ${{ steps.version.outputs.version }}
+          body_path: RELEASE_NOTES.md
+          files: |
+            jingcai-football-plugin-${{ steps.version.outputs.version }}.zip
+            jingcai-football-plugin-${{ steps.version.outputs.version }}.tar.gz
+            jingcai-football-plugin-${{ steps.version.outputs.version }}.zip.sha256
+            jingcai-football-plugin-${{ steps.version.outputs.version }}.tar.gz.sha256
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: 发布完成
+        run: |
+          echo "✅ 发布完成！"
+          echo "版本: ${{ steps.version.outputs.version }}"
+          echo "下载地址: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.version }}"

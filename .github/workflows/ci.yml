@@ -1,0 +1,200 @@
+name: CI - 自动化测试和代码检查
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  test:
+    name: 运行自动化测试
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      
+      - name: 设置Python环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install fastmcp
+      
+      - name: 运行单元测试
+        run: |
+          python3 tests/unit/test_core_tools.py
+        continue-on-error: false
+      
+      - name: 运行集成测试
+        run: |
+          python3 tests/integration/test_workflows.py
+        continue-on-error: false
+      
+      - name: 运行端到端测试
+        run: |
+          python3 tests/e2e/test_full_workflow.py
+        continue-on-error: false
+      
+      - name: 上传测试报告
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports
+          path: |
+            tests/*_report.json
+            tests/test_summary.json
+          retention-days: 30
+
+  syntax-check:
+    name: 代码语法检查
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      
+      - name: 设置Python环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: 检查所有MCP服务器语法
+        run: |
+          echo "=== 检查MCP服务器语法 ==="
+          find servers -name "server.py" -exec python3 -m py_compile {} \;
+          if [ $? -eq 0 ]; then
+            echo "✅ 所有MCP服务器语法检查通过"
+          else
+            echo "❌ 语法检查失败"
+            exit 1
+          fi
+      
+      - name: 检查所有技能脚本语法
+        run: |
+          echo "=== 检查技能脚本语法 ==="
+          find skills -name "*.py" -exec python3 -m py_compile {} \;
+          if [ $? -eq 0 ]; then
+            echo "✅ 所有技能脚本语法检查通过"
+          else
+            echo "❌ 语法检查失败"
+            exit 1
+          fi
+      
+      - name: 检查测试脚本语法
+        run: |
+          echo "=== 检查测试脚本语法 ==="
+          find tests -name "*.py" -exec python3 -m py_compile {} \;
+          if [ $? -eq 0 ]; then
+            echo "✅ 所有测试脚本语法检查通过"
+          else
+            echo "❌ 语法检查失败"
+            exit 1
+          fi
+
+  plugin-validation:
+    name: 插件规范验证
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      
+      - name: 设置Python环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: 检查plugin.json存在性
+        run: |
+          if [ -f "plugin.json" ]; then
+            echo "✅ plugin.json存在"
+            python3 -c "import json; json.load(open('plugin.json')); print('✅ plugin.json JSON格式有效')"
+          else
+            echo "❌ plugin.json不存在"
+            exit 1
+          fi
+      
+      - name: 检查mcp.json存在性
+        run: |
+          if [ -f "mcp.json" ]; then
+            echo "✅ mcp.json存在"
+            python3 -c "import json; json.load(open('mcp.json')); print('✅ mcp.json JSON格式有效')"
+          else
+            echo "⚠️  mcp.json不存在（可选）"
+          fi
+      
+      - name: 检查技能目录结构
+        run: |
+          echo "=== 检查技能目录 ==="
+          for skill in skills/*/; do
+            skill_name=$(basename "$skill")
+            if [ -f "${skill}SKILL.md" ]; then
+              echo "✅ $skill_name: SKILL.md存在"
+            else
+              echo "❌ $skill_name: SKILL.md缺失"
+              exit 1
+            fi
+          done
+      
+      - name: 检查MCP服务器目录结构
+        run: |
+          echo "=== 检查MCP服务器目录 ==="
+          for server in servers/*/; do
+            server_name=$(basename "$server")
+            if [ -f "${server}server.py" ]; then
+              echo "✅ $server_name: server.py存在"
+            else
+              echo "❌ $server_name: server.py缺失"
+              exit 1
+            fi
+          done
+      
+      - name: 统计工具数量
+        run: |
+          echo "=== 工具统计 ==="
+          total_tools=0
+          for server in servers/*/; do
+            server_name=$(basename "$server")
+            tool_count=$(grep -c "@mcp.tool()" "${server}server.py" 2>/dev/null || echo 0)
+            echo "  $server_name: $tool_count个工具"
+            total_tools=$((total_tools + tool_count))
+          done
+          echo "总计: $total_tools个MCP工具"
+      
+      - name: 上传验证报告
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: plugin-validation-report
+          path: |
+            plugin.json
+            mcp.json
+          retention-days: 30
+
+  summary:
+    name: 测试总结
+    runs-on: ubuntu-latest
+    needs: [test, syntax-check, plugin-validation]
+    if: always()
+    
+    steps:
+      - name: 输出总结
+        run: |
+          echo "## CI运行总结"
+          echo ""
+          echo "- 测试任务: ${{ needs.test.result }}"
+          echo "- 语法检查: ${{ needs.syntax-check.result }}"
+          echo "- 插件验证: ${{ needs.plugin-validation.result }}"
+          echo ""
+          if [ "${{ needs.test.result }}" = "success" ] && [ "${{ needs.syntax-check.result }}" = "success" ] && [ "${{ needs.plugin-validation.result }}" = "success" ]; then
+            echo "✅ 所有检查通过！"
+          else
+            echo "❌ 部分检查失败，请查看详细日志"
+            exit 1
+          fi
