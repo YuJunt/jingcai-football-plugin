@@ -41,7 +41,7 @@ def test_case(name):
 
 
 def import_module(server_name, module_name):
-    """动态导入服务器模块"""
+    """动态导入服务器模块，并自动处理FunctionTool的.fn()调用"""
     import importlib.util
     server_path = os.path.join(PLUGIN_ROOT, 'servers', server_name, 'server.py')
     spec = importlib.util.spec_from_file_location(module_name, server_path)
@@ -54,7 +54,22 @@ def import_module(server_name, module_name):
     finally:
         sys.argv = original_argv
     
+    # 自动处理FunctionTool：如果函数有.fn属性，就替换为.fn
+    for attr_name in dir(module):
+        attr = getattr(module, attr_name)
+        if hasattr(attr, 'fn') and callable(attr.fn):
+            # 这是一个FunctionTool对象，替换为.fn方法
+            setattr(module, attr_name, attr.fn)
+    
     return module
+
+
+def call_tool(module, func_name, **kwargs):
+    """安全调用工具函数，自动处理FunctionTool和普通函数"""
+    func = getattr(module, func_name)
+    if hasattr(func, 'fn') and callable(func.fn):
+        return func.fn(**kwargs)
+    return func(**kwargs)
 
 
 # ============================================================
