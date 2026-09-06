@@ -251,6 +251,20 @@
       "record_count": 1,
       "timestamp": "2026-09-06T17:55:49.708341",
       "status": "simulated"
+    },
+    {
+      "data_type": "test",
+      "table": "竞彩数据",
+      "record_count": 1,
+      "timestamp": "2026-09-06T18:46:31.101653",
+      "status": "simulated"
+    },
+    {
+      "data_type": "test",
+      "table": "竞彩数据",
+      "record_count": 1,
+      "timestamp": "2026-09-06T18:47:29.382041",
+      "status": "simulated"
     }
   ]
 }
