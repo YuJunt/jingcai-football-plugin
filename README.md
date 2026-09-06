@@ -1,181 +1,337 @@
-# 竞彩足球全量深度分析插件
+# jingcai-football-plugin
 
-> **版本**: v1.8.1 | **规范**: Agent Plugins 1.0.0 | **工具**: 123个MCP工具 | **技能**: 6个
+> 竞彩足球全量深度分析与投注方案插件v1.5.0。包含6个技能（1核心+5玩法专属）和6个MCP服务器（123个工具），覆盖数据采集、深度分析、报告生成、质量控制、投注组合、自进化闭环全流程。核心能力：官方5玩法赔率+8大资讯API直采、支持率/资金流/置信度过滤、ML集成模型（83328场训练）、Dixon-Coles/泊松/半全场条件概率、混合过关木桶校验、保本组合+M串N+复式容错、赛后结算+自进化回流。全部使用免费数据，无需付费数据源。
 
-## 概述
+![Version](https://img.shields.io/badge/version-1.11.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Skills](https://img.shields.io/badge/skills-7-purple) ![MCP Servers](https://img.shields.io/badge/MCP-9-orange)
 
-专业级竞彩足球分析预测Agent Plugin，覆盖数据采集、深度分析、报告生成、质量控制、投注组合、自进化闭环全流程。支持胜平负/让球胜平负/总进球/比分/半全场5种玩法+混合过关。
+## 功能特性
 
-## 核心特性
+- 包含 7 个 Agent Skill
+  - **jingcai-banquanchang**: 半全场玩法专属技能。半场矩阵→动态下半场λ→映射9结果、逆转选项分析、比赛节奏。当用户需要半全场玩法分析、半场/全场结果推荐、逆转博冷时使用。EV门槛+12%，
+  - **jingcai-bifen**: 比分玩法专属技能。方向+总进球双锁定、比分收敛度五步法、Dixon-Coles修正。当用户需要比分玩法分析、具体比分推荐、高赔博冷时使用。EV门槛+15%，Ke
+  - **jingcai-core**: 竞彩足球核心技能（协调层）。工作流编排、通用方法论、质量控制、自进化闭环、报告生成。当用户需要竞彩足球全流程分析、投注方案设计、赛后复盘、策略优化时使用。核心模
+  - **jingcai-mixed**: 混合过关专属技能。木桶原则校验、玩法搭配策略、过关上限规则、混合vs单玩法选择决策。当用户需要混合过关投注、多玩法串关、过关组合优化时使用。混合过关是竞彩特色，
+  - **jingcai-rangqiu**: 让球胜平负玩法专属技能。让平专项、赢球输盘风险、亚盘水位辅助。当用户需要让球胜平负玩法分析、让平价值识别、赢球输盘风险判断时使用。EV门槛+5%，Kelly系数
+  - **jingcai-spf**: 胜平负玩法专属技能。稳胆首选、平局价值、冷门博冷策略。当用户需要胜平负玩法分析、稳胆推荐、平局价值识别、冷门博冷时使用。EV门槛+5%，Kelly系数0.25，
+  - **jingcai-zongjinqiu**: 总进球玩法专属技能。大小球验证、档位集中度、攻防节奏分析。当用户需要总进球玩法分析、大小球判断、进球档位推荐时使用。EV门槛+7%，Kelly系数0.20，过关
+- 包含 9 个 MCP 服务器
+  - **analyzer**: 4 个工具
+  - **self-evolution**: 2 个工具
+  - **workflow**: 1 个工具
+  - **news-intelligence**: 7 个工具
+  - **visualization**: 6 个工具
+- 关键词: 竞彩足球, 体育彩票, 足球分析, 投注策略, 价值投注, 蒙特卡洛模拟, 多智能体, 半全场条件概率, CLV追踪, 历史数据分析, 自进化闭环
 
-- **超级一键工具** `run_full_workflow`：一次调用自动触发完整工作流，调用109个MCP工具，成功率100%
-- **5玩法专属分析**：每种玩法独立的分析方法论、EV门槛、Kelly系数、过关上限
-- **4阶段工作流**：数据采集→深度分析→投注组合→自进化闭环
-- **自进化机制**：投注入库→赛后结算→复盘反思→经验回流到下一次分析
-- **多模型矩阵**：泊松+Dixon-Coles+4模型集成+ML双模型+Elo/Glicko-2评分
-- **31联赛10万场历史数据**：模型校准、回测、相同对阵分析
+## 安装
 
-## 快速开始
+### 前置要求
 
-### 方式1：超级一键工具（推荐）
+- 支持 Agent Plugins 1.0 标准的客户端（Claude Code、Cursor、VS Code Copilot、Codex 等）
+- Node.js 18+ 或 Python 3.10+（取决于 MCP 服务器实现语言）
 
-只需调用一个工具，自动完成全部工作流：
+### 安装步骤
 
-```python
-run_full_workflow(
-    date='2026-09-06',        # 比赛日期
-    total_budget=500,          # 总预算（元）
-    risk_preference='balanced' # 风险偏好: conservative/balanced/aggressive
-)
+1. 将此插件目录复制到客户端的插件目录，或通过插件市场安装
+2. 在客户端配置中启用此插件
+3. 如果包含 MCP 服务器，确保已安装相应依赖：
+   - `data-collector`: `cd servers/data-collector && pip install -e .`
+   - `analyzer`: `cd servers/analyzer && pip install -e .`
+   - `report-generator`: `cd servers/report-generator && pip install -e .`
+   - `quality-control`: `cd servers/quality-control && pip install -e .`
+   - `portfolio`: `cd servers/portfolio && pip install -e .`
+   - `self-evolution`: `cd servers/self-evolution && pip install -e .`
+   - `workflow`: `cd servers/workflow && pip install -e .`
+   - `news-intelligence`: `cd servers/news-intelligence && pip install -e .`
+   - `visualization`: `cd servers/visualization && pip install -e .`
+
+## 使用方法
+
+### Skills
+
+插件包含以下技能，在对话中提及相关场景时会自动触发：
+
+#### jingcai-banquanchang
+
+半全场玩法专属技能。半场矩阵→动态下半场λ→映射9结果、逆转选项分析、比赛节奏。当用户需要半全场玩法分析、半场/全场结果推荐、逆转博冷时使用。EV门槛+12%，Kelly系数0.05，过关上限4关。
+
+**主要功能:**
+
+- 玩法特点
+- 9种选项
+- 玩法选择决策树（LLM必须按此判断）
+- 核心分析逻辑
+- P0新增专属工具（3个，必须使用）
+
+#### jingcai-bifen
+
+比分玩法专属技能。方向+总进球双锁定、比分收敛度五步法、Dixon-Coles修正。当用户需要比分玩法分析、具体比分推荐、高赔博冷时使用。EV门槛+15%，Kelly系数0.03，过关上限4关。
+
+**主要功能:**
+
+- 玩法特点
+- 31种选项
+- 玩法选择决策树（LLM必须按此判断）
+- 核心分析逻辑
+- 专属策略
+
+#### jingcai-core
+
+竞彩足球核心技能（协调层）。工作流编排、通用方法论、质量控制、自进化闭环、报告生成。当用户需要竞彩足球全流程分析、投注方案设计、赛后复盘、策略优化时使用。核心模式：4阶段工作流（数据采集→深度分析→投注组合→自进化），先输出全量专业分析报告，再基于报告与用户协作输出投注方案。
+
+**主要功能:**
+
+- ⚡ 快速开始（LLM必读）
+- 核心理念
+- LLM参与点规范（核心，必须遵守）
+- 版本更新记录
+- 🔧 工具强制调用检查清单（利用率必须100%）
+
+#### jingcai-mixed
+
+混合过关专属技能。木桶原则校验、玩法搭配策略、过关上限规则、混合vs单玩法选择决策。当用户需要混合过关投注、多玩法串关、过关组合优化时使用。混合过关是竞彩特色，允许不同玩法的选项串在同一张投注单上。
+
+**主要功能:**
+
+- 什么是混合过关
+- 核心原则：木桶理论
+- 玩法搭配策略
+- 过关上限规则（硬约束）
+- 混合过关vs单玩法串关选择决策树
+
+#### jingcai-rangqiu
+
+让球胜平负玩法专属技能。让平专项、赢球输盘风险、亚盘水位辅助。当用户需要让球胜平负玩法分析、让平价值识别、赢球输盘风险判断时使用。EV门槛+5%，Kelly系数0.20，过关上限8关。
+
+**主要功能:**
+
+- 玩法特点
+- 与亚盘的核心差异
+- 玩法选择决策树（LLM必须按此判断）
+- 核心分析逻辑
+- 专属策略
+
+#### jingcai-spf
+
+胜平负玩法专属技能。稳胆首选、平局价值、冷门博冷策略。当用户需要胜平负玩法分析、稳胆推荐、平局价值识别、冷门博冷时使用。EV门槛+5%，Kelly系数0.25，过关上限8关。
+
+**主要功能:**
+
+- 玩法特点
+- 玩法选择决策树（LLM必须按此判断）
+- 核心分析逻辑
+- 专属策略
+- 关键参数速查表
+
+#### jingcai-zongjinqiu
+
+总进球玩法专属技能。大小球验证、档位集中度、攻防节奏分析。当用户需要总进球玩法分析、大小球判断、进球档位推荐时使用。EV门槛+7%，Kelly系数0.20，过关上限6关。
+
+**主要功能:**
+
+- 玩法特点
+- 玩法选择决策树（LLM必须按此判断）
+- 核心分析逻辑
+- 专属策略
+- 关键参数速查表
+
+### MCP 工具
+
+#### data-collector
+
+- **传输方式**: stdio
+- **启动命令**: `python3`
+
+*工具列表请参考服务器源代码*
+
+#### analyzer
+
+- **传输方式**: stdio
+- **启动命令**: `python3`
+
+**工具列表:**
+
+| 工具名 | 描述 |
+|--------|------|
+| `find_similar_matches` | - |
+| `league_pattern_match` | - |
+| `strategy_backtest` | - |
+| `update_team_strength` | - |
+
+#### report-generator
+
+- **传输方式**: stdio
+- **启动命令**: `python3`
+
+*工具列表请参考服务器源代码*
+
+#### quality-control
+
+- **传输方式**: stdio
+- **启动命令**: `python3`
+
+*工具列表请参考服务器源代码*
+
+#### portfolio
+
+- **传输方式**: stdio
+- **启动命令**: `python3`
+
+*工具列表请参考服务器源代码*
+
+#### self-evolution
+
+- **传输方式**: stdio
+- **启动命令**: `python3`
+
+**工具列表:**
+
+| 工具名 | 描述 |
+|--------|------|
+| `get_user_preferences` | - |
+| `update_user_preferences` | - |
+
+#### workflow
+
+- **传输方式**: stdio
+- **启动命令**: `python3`
+
+**工具列表:**
+
+| 工具名 | 描述 |
+|--------|------|
+| `run_full_workflow` | - |
+
+#### news-intelligence
+
+- **传输方式**: stdio
+- **启动命令**: `python3`
+
+**工具列表:**
+
+| 工具名 | 描述 |
+|--------|------|
+| `generate_news_search_keywords` | - |
+| `parse_news_text` | - |
+| `quantify_injury_impact` | - |
+| `analyze_motivation` | - |
+| `analyze_fixture_congestion` | - |
+| `news_to_lambda_mapping` | - |
+| `aggregate_news_intelligence` | - |
+
+#### visualization
+
+- **传输方式**: stdio
+- **启动命令**: `python3`
+
+**工具列表:**
+
+| 工具名 | 描述 |
+|--------|------|
+| `generate_odds_trend_chart` | - |
+| `generate_probability_radar` | - |
+| `generate_payout_matrix` | - |
+| `generate_hit_rate_trend` | - |
+| `generate_interactive_report` | - |
+| `generate_ev_distribution_chart` | - |
+
+## 配置
+
+### plugin.json
+
+插件的核心配置文件，包含插件元数据。
+
+```json
+{
+  "name": "jingcai-football-plugin",
+  "version": "1.11.0",
+  "description": "竞彩足球全量深度分析与投注方案插件v1.5.0。包含6个技能（1核心+5玩法专属）和6个MCP服务器（123个工具），覆盖数据采集、深度分析、报告生成、质量控制、投注组合、自进化闭环全流程。核心能力：官方5玩法赔率+8大资讯API直采、支持率/资金流/置信度过滤、ML集成模型（83328场训练）、Dixon-Coles/泊松/半全场条件概率、混合过关木桶校验、保本组合+M串N+复式容错、赛后结算+自进化回流。全部使用免费数据，无需付费数据源。"
+}
 ```
 
-内部自动执行：
-1. **阶段1**：采集当期所有比赛的5玩法赔率+8大资讯+第三方赔率+支持率
-2. **阶段2**：48个分析工具逐场深度分析（5玩法全覆盖）
-3. **阶段3**：动态生成投注组合方案（非硬解码，根据当期价值机会）
-4. **阶段4**：自进化闭环（决策记录+经验沉淀+模型校准）
+### mcp.json
 
-### 方式2：分步调用
+MCP 服务器配置文件，定义插件包含的 MCP 服务器。
 
-根据需要调用各服务器的独立工具，详见下方MCP工具列表。
+```json
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "data-collector": {
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "./servers/data-collector/server.py"
+      ],
+      "cwd": "${PLUGIN_ROOT}",
+      "description": "数据采集MCP服务器。31个工具：官方赛程/5玩法赔率/8大资讯/支持率/赛果/赔率走势/第三方数据/批量采集/500.com解析。"
+    },
+    "analyzer": {
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "./servers/analyzer/server.py"
+      ],
+  
+```
 
-## 技能列表
+## 兼容性
 
-| 技能 | 用途 | EV门槛 | Kelly系数 | 过关上限 |
-|------|------|--------|----------|---------|
-| `jingcai-core` | 核心协调层，工作流编排 | - | - | - |
-| `jingcai-spf` | 胜平负玩法专属 | +5% | 0.25 | 8关 |
-| `jingcai-rangqiu` | 让球胜平负玩法专属 | +5% | 0.20 | 8关 |
-| `jingcai-zongjinqiu` | 总进球玩法专属 | +7% | 0.20 | 6关 |
-| `jingcai-bifen` | 比分玩法专属 | +15% | 0.03 | 4关 |
-| `jingcai-banquanchang` | 半全场玩法专属 | +12% | 0.05 | 4关 |
+此插件符合 [Agent Plugins 1.0](https://github.com/agentplugins/agent-plugins-spec) 开放规范，支持以下客户端：
 
-## MCP服务器与工具
+- ✅ Claude Code
+- ✅ Cursor
+- ✅ VS Code (GitHub Copilot)
+- ✅ OpenAI Codex
+- ✅ Google Gemini (部分支持)
 
-| 服务器 | 工具数 | 核心能力 |
-|--------|--------|---------|
-| `data-collector` | 29 | 官方5玩法赔率/8大资讯/第三方赔率/支持率/多源交叉验证 |
-| `analyzer` | 48 | 泊松/Dixon-Coles/4模型集成/ML预测/半全场条件概率/反向指标/多视角分析 |
-| `portfolio` | 19 | 动态投注组合/M串N/复式/保本结构/资金管理/标准投注单 |
-| `quality-control` | 4 | 官方规则校验/预检/反思检查/混合过关木桶原则 |
-| `self-evolution` | 17 | 决策日志/赛后复盘/模型校准/策略回测/记忆管理/案例库 |
-| `report-generator` | 5 | 数据报告/全玩法分析报告/标准化输出 |
-| `workflow` | 1 | 超级一键工具`run_full_workflow` |
+## 开发
 
-## 目录结构
+### 目录结构
 
 ```
 jingcai-football-plugin/
-├── plugin.json              # 插件清单
-├── mcp.json                 # MCP配置（7个服务器）
-├── README.md                # 本文件
-├── skills/                  # 6个技能（1核心+5玩法专属）
-│   ├── jingcai-core/
-│   ├── jingcai-spf/
-│   ├── jingcai-rangqiu/
-│   ├── jingcai-zongjinqiu/
-│   ├── jingcai-bifen/
+├── plugin.json          # 插件清单（必需）
+├── skills/              # Agent Skills
 │   └── jingcai-banquanchang/
-├── servers/                 # 7个MCP服务器
-│   ├── data-collector/
-│   ├── analyzer/
-│   ├── portfolio/
-│   ├── quality-control/
-│   ├── self-evolution/
-│   ├── report-generator/
+│       └── SKILL.md
+│   └── jingcai-bifen/
+│       └── SKILL.md
+│   └── jingcai-core/
+│       └── SKILL.md
+│   └── jingcai-mixed/
+│       └── SKILL.md
+│   └── jingcai-rangqiu/
+│       └── SKILL.md
+│   └── jingcai-spf/
+│       └── SKILL.md
+│   └── jingcai-zongjinqiu/
+│       └── SKILL.md
+├── mcp.json             # MCP 服务器配置
+├── servers/             # MCP 服务器代码
+│   └── data-collector/
+│   └── analyzer/
+│   └── report-generator/
+│   └── quality-control/
+│   └── portfolio/
+│   └── self-evolution/
 │   └── workflow/
-├── data/                    # 数据资产
-│   ├── history/             # 31联赛10万场历史数据
-│   ├── ml_model.pkl         # ML模型（83328样本训练）
-│   ├── lambda_calibration.json  # 分联赛λ校准参数
-│   └── decision_log.json    # 决策日志
-├── scripts/                 # 辅助脚本
-│   ├── sync_to_wrapper_skill.sh  # 同步到反向封装Skill
-│   ├── batch_third_party_collector.py
-│   └── batch_news_collector.py
-└── output/                  # 输出目录（报告/投注单）
+│   └── news-intelligence/
+│   └── visualization/
+└── com.<client>/        # 客户端专属扩展（可选）
 ```
 
-## 数据采集说明
+### 验证
 
-### 官方数据（竞彩网API）
-- ✅ 5玩法赔率：胜平负/让球胜平负/总进球8档/比分28个/半全场9个
-- ✅ 赛程列表/支持率
-- ⚠️ 8大资讯API：云IP被封禁，用general_search替代
+使用 agent-plugin-creator 技能的验证工具：
 
-### 第三方数据
-- ✅ 欧指/亚盘/大小球：general_search搜索获取
-- ✅ 伤停/预测/新闻：general_search搜索获取
-- 脚本提供解析框架，LLM主动调用general_search补充
-
-## 自进化闭环
-
-```
-赛前分析 ← 经验回流 ← 自进化反思 ← 赛后复盘 ← 赛后结算
-    ↓
-投注入库（decision_log.json）
-```
-
-每次分析前自动预加载：
-- 各玩法历史命中率/ROI
-- 分联赛校准参数
-- 典型案例库
-- 策略参数（动态调整的EV门槛/Kelly系数）
-
-## 开发说明
-
-### 添加新工具
-1. 在对应服务器的`server.py`中添加`@mcp.tool()`装饰的函数
-2. 如在`workflow`中需要自动调用，在`run_full_workflow`中添加`call_tool()`
-3. 运行语法验证：`python3 -c "import py_compile; py_compile.compile('servers/xxx/server.py', doraise=True)"`
-
-### 同步到反向封装Skill
 ```bash
-bash scripts/sync_to_wrapper_skill.sh
-```
-
-### 规范验证
-```bash
-# 插件验证
-python3 ../.user_skills/agent-plugin-creator/scripts/validate_plugin.py .
+# 验证插件结构
+python3 scripts/validate_plugin.py .
 
 # 安全审计
-python3 ../.user_skills/agent-plugin-creator/scripts/audit_plugin.py .
-
-# MCP握手测试
-python3 ../.user_skills/agent-plugin-creator/scripts/test_mcp_handshake.py --command "python3 servers/workflow/server.py"
+python3 scripts/audit_plugin.py .
 ```
-
-## 更新日志
-
-### v1.8.1 (2026-09-06)
-- 新增workflow服务器，超级一键工具`run_full_workflow`（调用109个工具，成功率100%）
-- 工具总数123个，7个MCP服务器
-- 移除3个重复工具（collect_all_matches/get_odds_history/record_odds_snapshot）
-- 修复get_multi_source_odds内部FunctionTool调用bug
-- 修复让球概率计算（泊松比分矩阵精确计算）
-- 新增批量第三方数据采集和8大资讯搜索脚本
-
-### v1.1.0 (2026-09-06)
-- 能力移植审计：补充32项遗漏能力
-- MCP服务器从4个扩展到6个
-- MCP工具从50个扩展到82个
-- 新增报告生成和质量控制能力
-
-### v1.0.0 (2026-09-06)
-- 初始版本
-- 6个技能（1核心+5玩法专属）
-- 4个MCP服务器（50个工具）
-- 4阶段工作流
-
-## 注意事项
-
-1. **理性购彩**：所有输出为模拟盘分析，不构成投注建议
-2. **数据时效性**：赔率和资讯需实时获取，禁止使用过时数据
-3. **禁止硬解码**：投注单数量/类型/玩法组合必须动态决定
-4. **全量分析**：5种玩法必须全覆盖，禁止因"复杂"跳过比分/半全场
-5. **决策必须有理由**：无理由的决策不被接受
 
 ## 许可证
 
-本插件仅供学习研究使用。
+MIT © jingcai-football-team

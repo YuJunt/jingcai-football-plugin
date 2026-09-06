@@ -10,6 +10,8 @@ import sys
 from datetime import datetime
 from fastmcp import FastMCP
 
+PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 # 统一错误处理
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'common'))
 from error_handler import safe_tool, make_error_response, make_success_response

@@ -69,6 +69,13 @@
       "args": [
         "./servers/news-intelligence/server.py"
       ]
+    },
+    "visualization": {
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "./servers/visualization/server.py"
+      ]
     }
   }
 }

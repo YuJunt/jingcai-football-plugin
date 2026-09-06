@@ -150,6 +150,8 @@ def run_full_workflow(date: str = None, total_budget: float = 500, risk_preferen
     qc = load_server_module('quality-control')
     pf = load_server_module('portfolio')
     se = load_server_module('self-evolution')
+    ni = load_server_module('news-intelligence')
+    viz = load_server_module('visualization')
     print("加载完成")
     
     def call_tool(stage, tool_name, fn, *args, **kwargs):
@@ -439,6 +441,9 @@ def run_full_workflow(date: str = None, total_budget: float = 500, risk_preferen
     report_result['nine_step_report'] = call_tool('报告', 'generate_analysis_report_nine_step', rg.generate_analysis_report_nine_step, sample_matches, {}, {})
     report_result['standardized'] = call_tool('报告', 'standardize_output', rg.standardize_output, '', bet_slips, 'all')
     report_result['visualization'] = call_tool('报告', 'generate_visualization_html', rg.generate_visualization_html, sample_matches, analysis_results, date)
+    # 可视化服务器（P3-1新增）
+    call_tool('报告', 'generate_interactive_report', viz.generate_interactive_report, sample_matches, analysis_results, bet_slips, date)
+    call_tool('报告', 'generate_ev_distribution_chart', viz.generate_ev_distribution_chart, value_options[:20] if value_options else [], date)
     
     # ================================================================
     # 汇总

@@ -15,7 +15,7 @@ echo ""
 
 # 1. 同步8个MCP服务器
 echo "【1/8】同步MCP服务器..."
-for server in data-collector analyzer report-generator quality-control portfolio self-evolution workflow news-intelligence; do
+for server in data-collector analyzer report-generator quality-control portfolio self-evolution workflow news-intelligence visualization; do
     mkdir -p "$SKILL_ROOT/servers/$server"
     cp -r "$PLUGIN_ROOT/servers/$server/"*.py "$SKILL_ROOT/servers/$server/" 2>/dev/null || true
     echo "  ✅ $server"

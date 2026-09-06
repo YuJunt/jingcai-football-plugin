@@ -1,9 +1,9 @@
 {
   "capabilities": {
     "full_workflow": {
-      "success": 45,
+      "success": 55,
       "failure": 0,
-      "last_used": "2026-09-06T17:22:38.507398"
+      "last_used": "2026-09-06T17:34:25.285374"
     }
   },
   "failures": []

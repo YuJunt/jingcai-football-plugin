@@ -19,14 +19,24 @@ from error_handler import safe_tool, make_error_response, make_success_response
 mcp = FastMCP("jingcai-analyzer")
 
 # 整合模块（来源：lottery-data项目）
-from fund_flow import FundFlowAnalyzer, analyze_fund_flow
+try:
+    from fund_flow import FundFlowAnalyzer, analyze_fund_flow
+except ImportError:
+    FundFlowAnalyzer = None
+    analyze_fund_flow = None
 LEAGUE_MAP = {
     'E0': '英超', 'E1': '英冠', 'D1': '德甲', 'SP1': '西甲', 'I1': '意甲',
     'F1': '法甲', 'N': '荷甲', 'NOR': '挪超', 'SWE': '瑞超', 'JPN': '日职',
     'KOR': '韩职', 'BRA': '巴甲', 'USA': '美职', 'SAU': '沙特联',
 }
 
-from confidence_filter import confidence_score, batch_confidence_filter
+try:
+    from confidence_filter import confidence_score, batch_confidence_filter
+except ImportError:
+    def confidence_score(*args, **kwargs):
+        return 0.5
+    def batch_confidence_filter(*args, **kwargs):
+        return []
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'data')
 HISTORY_DIR = os.path.join(DATA_DIR, 'history')

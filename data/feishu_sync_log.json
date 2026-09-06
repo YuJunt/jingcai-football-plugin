@@ -188,6 +188,41 @@
       "record_count": 1,
       "timestamp": "2026-09-06T17:22:38.561550",
       "status": "simulated"
+    },
+    {
+      "data_type": "test",
+      "table": "竞彩数据",
+      "record_count": 1,
+      "timestamp": "2026-09-06T17:30:03.546527",
+      "status": "simulated"
+    },
+    {
+      "data_type": "test",
+      "table": "竞彩数据",
+      "record_count": 1,
+      "timestamp": "2026-09-06T17:30:38.644565",
+      "status": "simulated"
+    },
+    {
+      "data_type": "test",
+      "table": "竞彩数据",
+      "record_count": 1,
+      "timestamp": "2026-09-06T17:30:52.655329",
+      "status": "simulated"
+    },
+    {
+      "data_type": "test",
+      "table": "竞彩数据",
+      "record_count": 1,
+      "timestamp": "2026-09-06T17:32:10.147116",
+      "status": "simulated"
+    },
+    {
+      "data_type": "test",
+      "table": "竞彩数据",
+      "record_count": 1,
+      "timestamp": "2026-09-06T17:34:25.409191",
+      "status": "simulated"
     }
   ]
 }
