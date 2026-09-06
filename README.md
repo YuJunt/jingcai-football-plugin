@@ -1,26 +1,31 @@
 # jingcai-football-plugin
 
-> 竞彩足球全量深度分析与投注方案插件v1.5.0。包含6个技能（1核心+5玩法专属）和6个MCP服务器（123个工具），覆盖数据采集、深度分析、报告生成、质量控制、投注组合、自进化闭环全流程。核心能力：官方5玩法赔率+8大资讯API直采、支持率/资金流/置信度过滤、ML集成模型（83328场训练）、Dixon-Coles/泊松/半全场条件概率、混合过关木桶校验、保本组合+M串N+复式容错、赛后结算+自进化回流。全部使用免费数据，无需付费数据源。
+> 竞彩足球全量深度分析与投注方案插件v1.13.0。包含8个技能（1核心+1方法论+5玩法专属+1混合过关）和9个MCP服务器（178个工具），覆盖数据采集、深度分析、报告生成、质量控制、投注组合、自进化闭环全流程。核心能力：官方5玩法赔率+8大资讯API直采、支持率/资金流/置信度过滤、ML集成模型（85454场训练）、Dixon-Coles/泊松/半全场条件概率、混合过关木桶校验、保本组合+M串N+复式容错、赛后结算+自进化回流、模拟账户管理、参数自校准、自动化测试。全部使用免费数据，无需付费数据源。
 
-![Version](https://img.shields.io/badge/version-1.11.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Skills](https://img.shields.io/badge/skills-7-purple) ![MCP Servers](https://img.shields.io/badge/MCP-9-orange)
+![Version](https://img.shields.io/badge/version-1.13.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Skills](https://img.shields.io/badge/skills-8-purple) ![MCP Servers](https://img.shields.io/badge/MCP-9-orange) ![Tools](https://img.shields.io/badge/tools-178-red) ![Tests](https://img.shields.io/badge/tests-21-brightgreen)
 
 ## 功能特性
 
-- 包含 7 个 Agent Skill
-  - **jingcai-banquanchang**: 半全场玩法专属技能。半场矩阵→动态下半场λ→映射9结果、逆转选项分析、比赛节奏。当用户需要半全场玩法分析、半场/全场结果推荐、逆转博冷时使用。EV门槛+12%，
-  - **jingcai-bifen**: 比分玩法专属技能。方向+总进球双锁定、比分收敛度五步法、Dixon-Coles修正。当用户需要比分玩法分析、具体比分推荐、高赔博冷时使用。EV门槛+15%，Ke
-  - **jingcai-core**: 竞彩足球核心技能（协调层）。工作流编排、通用方法论、质量控制、自进化闭环、报告生成。当用户需要竞彩足球全流程分析、投注方案设计、赛后复盘、策略优化时使用。核心模
-  - **jingcai-mixed**: 混合过关专属技能。木桶原则校验、玩法搭配策略、过关上限规则、混合vs单玩法选择决策。当用户需要混合过关投注、多玩法串关、过关组合优化时使用。混合过关是竞彩特色，
-  - **jingcai-rangqiu**: 让球胜平负玩法专属技能。让平专项、赢球输盘风险、亚盘水位辅助。当用户需要让球胜平负玩法分析、让平价值识别、赢球输盘风险判断时使用。EV门槛+5%，Kelly系数
-  - **jingcai-spf**: 胜平负玩法专属技能。稳胆首选、平局价值、冷门博冷策略。当用户需要胜平负玩法分析、稳胆推荐、平局价值识别、冷门博冷时使用。EV门槛+5%，Kelly系数0.25，
-  - **jingcai-zongjinqiu**: 总进球玩法专属技能。大小球验证、档位集中度、攻防节奏分析。当用户需要总进球玩法分析、大小球判断、进球档位推荐时使用。EV门槛+7%，Kelly系数0.20，过关
+- 包含 8 个 Agent Skill
+  - **jingcai-core**: 竞彩足球核心技能（协调层）。工作流编排、通用方法论、质量控制、自进化闭环、报告生成。当用户需要竞彩足球全流程分析、投注方案设计、赛后复盘、策略优化时使用。核心模式：4阶段工作流（数据采集→深度分析→投注组合→自进化）。
+  - **jingcai-methodology**: 竞彩足球通用方法论知识层。包含EV计算/Kelly公式/概率模型/资金管理/保本策略/高级分析维度/被忽略维度/典型错误自检/官方规则。由jingcai-core在分析阶段按需调用。
+  - **jingcai-spf**: 胜平负玩法专属技能。稳胆首选、平局价值、冷门博冷策略。EV门槛+5%，Kelly系数0.25，过关上限8关。
+  - **jingcai-rangqiu**: 让球胜平负玩法专属技能。让平专项、赢球输盘风险、亚盘水位辅助。EV门槛+5%，Kelly系数0.20，过关上限8关。
+  - **jingcai-zongjinqiu**: 总进球玩法专属技能。大小球验证、档位集中度、攻防节奏分析。EV门槛+7%，Kelly系数0.20，过关上限6关。
+  - **jingcai-bifen**: 比分玩法专属技能。方向+总进球双锁定、比分收敛度五步法、Dixon-Coles修正。EV门槛+15%，Kelly系数0.03，过关上限4关。
+  - **jingcai-banquanchang**: 半全场玩法专属技能。半场矩阵→动态下半场λ→映射9结果、逆转选项分析、比赛节奏。EV门槛+12%，Kelly系数0.05，过关上限4关。
+  - **jingcai-mixed**: 混合过关专属技能。木桶原则校验、玩法搭配策略、过关上限规则、混合vs单玩法选择决策。混合过关是竞彩特色，允许不同玩法的选项串在同一张投注单上。
 - 包含 9 个 MCP 服务器
-  - **analyzer**: 4 个工具
-  - **self-evolution**: 2 个工具
-  - **workflow**: 1 个工具
-  - **news-intelligence**: 7 个工具
-  - **visualization**: 6 个工具
-- 关键词: 竞彩足球, 体育彩票, 足球分析, 投注策略, 价值投注, 蒙特卡洛模拟, 多智能体, 半全场条件概率, CLV追踪, 历史数据分析, 自进化闭环
+  - **analyzer**: 52个工具（深度分析、概率模型、价值分析）
+  - **data-collector**: 36个工具（数据采集、赔率获取、资讯获取、数据持久化）
+  - **news-intelligence**: 7个工具（资讯智能分析）
+  - **portfolio**: 20个工具（投注组合、保本策略、M串N、复式容错）
+  - **quality-control**: 4个工具（质量控制、预检、反思检查）
+  - **report-generator**: 5个工具（报告生成、标准化输出）
+  - **self-evolution**: 28个工具（自进化、模拟账户、赛后结算、经验提取）
+  - **visualization**: 6个工具（可视化、图表生成）
+  - **workflow**: 3个工具（工作流编排、参数管理、参数自校准）
+- 关键词: 竞彩足球, 体育彩票, 足球分析, 投注策略, 价值投注, 蒙特卡洛模拟, 多智能体, 半全场条件概率, CLV追踪, 历史数据分析, 自进化闭环, 模拟账户, 参数自校准, Agent Plugin
 
 ## 安装
 
