@@ -90,6 +90,90 @@
       "record_count": 1,
       "timestamp": "2026-09-06T16:38:57.439478",
       "status": "simulated"
+    },
+    {
+      "data_type": "test",
+      "table": "竞彩数据",
+      "record_count": 1,
+      "timestamp": "2026-09-06T17:02:08.260123",
+      "status": "simulated"
+    },
+    {
+      "data_type": "test",
+      "table": "竞彩数据",
+      "record_count": 1,
+      "timestamp": "2026-09-06T17:03:43.872006",
+      "status": "simulated"
+    },
+    {
+      "data_type": "test",
+      "table": "竞彩数据",
+      "record_count": 1,
+      "timestamp": "2026-09-06T17:04:53.805226",
+      "status": "simulated"
+    },
+    {
+      "data_type": "test",
+      "table": "竞彩数据",
+      "record_count": 1,
+      "timestamp": "2026-09-06T17:05:40.601230",
+      "status": "simulated"
+    },
+    {
+      "data_type": "test",
+      "table": "竞彩数据",
+      "record_count": 1,
+      "timestamp": "2026-09-06T17:05:55.880668",
+      "status": "simulated"
+    },
+    {
+      "data_type": "test",
+      "table": "竞彩数据",
+      "record_count": 1,
+      "timestamp": "2026-09-06T17:06:17.361718",
+      "status": "simulated"
+    },
+    {
+      "data_type": "test",
+      "table": "竞彩数据",
+      "record_count": 1,
+      "timestamp": "2026-09-06T17:07:11.303659",
+      "status": "simulated"
+    },
+    {
+      "data_type": "test",
+      "table": "竞彩数据",
+      "record_count": 1,
+      "timestamp": "2026-09-06T17:07:26.228053",
+      "status": "simulated"
+    },
+    {
+      "data_type": "test",
+      "table": "竞彩数据",
+      "record_count": 1,
+      "timestamp": "2026-09-06T17:07:47.011361",
+      "status": "simulated"
+    },
+    {
+      "data_type": "test",
+      "table": "竞彩数据",
+      "record_count": 1,
+      "timestamp": "2026-09-06T17:08:00.849850",
+      "status": "simulated"
+    },
+    {
+      "data_type": "test",
+      "table": "竞彩数据",
+      "record_count": 1,
+      "timestamp": "2026-09-06T17:08:28.240211",
+      "status": "simulated"
+    },
+    {
+      "data_type": "test",
+      "table": "竞彩数据",
+      "record_count": 1,
+      "timestamp": "2026-09-06T17:08:47.512128",
+      "status": "simulated"
     }
   ]
 }

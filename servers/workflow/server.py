@@ -17,6 +17,10 @@ mcp = FastMCP("jingcai-workflow")
 # 插件根目录
 PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# 统一返回格式工具
+sys.path.insert(0, os.path.join(PLUGIN_ROOT, 'common'))
+from tool_response import ok, fail, parse_response, standard_response
+
 def load_server_module(server_name):
     """动态加载服务器模块"""
     server_dir = os.path.join(PLUGIN_ROOT, 'servers', server_name)
@@ -39,15 +43,18 @@ def load_server_module(server_name):
         return None
 
 def safe_call(fn, *args, **kwargs):
-    """安全调用工具，自动处理FunctionTool对象，失败返回错误信息但不中断"""
+    """安全调用工具，自动处理FunctionTool对象，兼容新旧返回格式"""
     try:
         # 如果是FunctionTool对象，提取.fn
         if hasattr(fn, 'fn'):
             fn = fn.fn
         result = fn(*args, **kwargs)
-        if isinstance(result, dict) and 'data' in result:
-            return result['data']
-        return result
+        # 使用统一解析器，兼容新旧格式
+        parsed = parse_response(result)
+        if parsed['success']:
+            return parsed['data']
+        else:
+            return {'error': parsed['error'], 'data': parsed['data']}
     except Exception as e:
         return {'error': str(e), 'traceback': traceback.format_exc()[:200]}
 
@@ -73,17 +80,24 @@ def run_full_workflow(date: str = None, total_budget: float = 500, risk_preferen
     """
     if not date:
         date = datetime.now().strftime('%Y-%m-%d')
+    start_ts = time.time()
     
     result = {
         'workflow_id': f"wf_{int(time.time())}",
         'date': date,
         'start_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'total_tools': 125,
+        'total_tools': 123,
         'tools_called': 0,
         'tools_success': 0,
         'tools_failed': 0,
         'tool_results': {},
         'stages': {},
+        'observability': {
+            'data_completeness': {'matches_total': 0, 'odds_complete': 0, 'news_complete': 0, 'third_party_complete': 0},
+            'analysis_coverage': {'matches_analyzed': 0, 'play_coverage': {}},
+            'tool_performance': {},
+            'errors': [],
+        },
     }
     
     # 加载所有服务器模块
@@ -378,11 +392,12 @@ def run_full_workflow(date: str = None, total_budget: float = 500, risk_preferen
     print("报告生成（5个report-generator工具）")
     print("=" * 60)
     
-    call_tool('报告', 'generate_data_report_pure', rg.generate_data_report_pure, sample_matches, [], date)
-    call_tool('报告', 'generate_full_play_analysis_report', rg.generate_full_play_analysis_report, sample_matches, analysis_results, date)
-    call_tool('报告', 'generate_analysis_report_nine_step', rg.generate_analysis_report_nine_step, sample_matches, {}, {})
-    call_tool('报告', 'standardize_output', rg.standardize_output, '', bet_slips, 'all')
-    call_tool('报告', 'generate_visualization_html', rg.generate_visualization_html, sample_matches, analysis_results, date)
+    report_result = {}
+    report_result['data_report'] = call_tool('报告', 'generate_data_report_pure', rg.generate_data_report_pure, sample_matches, [], date)
+    report_result['analysis_report'] = call_tool('报告', 'generate_full_play_analysis_report', rg.generate_full_play_analysis_report, sample_matches, analysis_results, date)
+    report_result['nine_step_report'] = call_tool('报告', 'generate_analysis_report_nine_step', rg.generate_analysis_report_nine_step, sample_matches, {}, {})
+    report_result['standardized'] = call_tool('报告', 'standardize_output', rg.standardize_output, '', bet_slips, 'all')
+    report_result['visualization'] = call_tool('报告', 'generate_visualization_html', rg.generate_visualization_html, sample_matches, analysis_results, date)
     
     # ================================================================
     # 汇总
@@ -393,10 +408,33 @@ def run_full_workflow(date: str = None, total_budget: float = 500, risk_preferen
     
     print("\n" + "=" * 60)
     print(f"工作流完成！调用{result['tools_called']}个工具，成功{result['tools_success']}，失败{result['tools_failed']}")
-    print(f"工具利用率: {result['utilization_rate']}")
+    print(f"工具利用率: {result['tools_success']}/123 = {result['tools_success']/123*100:.1f}%")
     print("=" * 60)
     
-    return result
+    # 组装最终结果（含可观测性指标）
+    workflow_result = {
+        'date': date,
+        'total_budget': total_budget,
+        'risk_preference': risk_preference,
+        'tools_called': result['tools_called'],
+        'tools_success': result['tools_success'],
+        'tools_failed': result['tools_failed'],
+        'utilization_rate': f"{result['tools_success']}/123 = {result['tools_success']/123*100:.1f}%",
+        'stages': result['stages'],
+        'tool_results': result['tool_results'],
+        'matches_count': len(matches),
+        'analysis_count': len(analysis_results),
+        'portfolio': portfolio_result,
+        'reports': report_result,
+        'started_at': result.get('start_time', ''),
+        'finished_at': time.strftime('%Y-%m-%d %H:%M:%S'),
+        'duration_seconds': round(time.time() - start_ts, 1),
+        'observability': result['observability'],
+    }
+    return ok('run_full_workflow', workflow_result, 
+             duration=round(time.time() - start_ts, 1),
+             tools_called=result['tools_called'],
+             tools_success=result['tools_success'])
 
 if __name__ == '__main__':
     mcp.run()
