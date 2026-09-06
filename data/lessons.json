@@ -1,0 +1,563 @@
+{
+  "version": "2.0",
+  "last_updated": "2026-09-05 06:13:03",
+  "total_lessons": 48,
+  "lessons": [
+    {
+      "id": 1,
+      "category": "数据采集",
+      "severity": "critical",
+      "title": "官方赔率API端点和参数",
+      "lesson": "5种玩法完整赔率通过 https://webapi.sporttery.cn/gateway/uniform/football/getFixedBonusV1.qry?clientCode=3001&matchId={mid} 获取，返回value.oddsHistory下包含hadList/hhadList/ttgList/crsList/hafuList。比分字段格式s{主队进球:02d}s{客队:02d}，如s01s00=1:0。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 2,
+      "category": "数据采集",
+      "severity": "critical",
+      "title": "mid必须是纯数字ID",
+      "lesson": "mid是竞彩网全局唯一比赛ID，必须是纯数字（如2041245），不能用日期+编号格式（如20260904001），否则返回'暂无数据'。同期比赛mid连续，可从赛程页面获取起始mid后递增。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 3,
+      "category": "数据采集",
+      "severity": "high",
+      "title": "官方8大资讯API有7个端点",
+      "lesson": "特征分析getMatchFeatureV1.qry、历史交锋getResultHistoryV1.qry、比赛近况getMatchResultV1.qry、伤停getInjurySuspensionV1.qry、积分榜getMatchTablesV2.qry、未来赛事getFutureMatchesV1.qry、射手信息getMatchPlayerV1.qry。全部需要sportteryMatchId参数（即mid）。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 4,
+      "category": "数据采集",
+      "severity": "high",
+      "title": "500.com获取赔率不稳定",
+      "lesson": "500.com经常出现link parse error，无法稳定获取赔率数据。不建议作为主数据源，仅可作为交叉验证的备用源。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 5,
+      "category": "数据采集",
+      "severity": "medium",
+      "title": "球探网/澳客网有反爬策略",
+      "lesson": "球探网nowscore.com有安全策略拦截，澳客网HTML是AJAX动态加载无法直接解析。第三方数据优先用general_search搜索获取。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 6,
+      "category": "数据采集",
+      "severity": "high",
+      "title": "web.fetch无法获取JS动态渲染页面",
+      "lesson": "web.fetch直接获取showType=3页面HTML无法获取比分赔率数据（JS动态渲染）。必须用API端点获取，不能用web.fetch抓页面。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 7,
+      "category": "数据采集",
+      "severity": "medium",
+      "title": "旧API端点已废弃",
+      "lesson": "getMatchDetailV1.qry等旧API返回'请求错误'，必须使用getFixedBonusV1.qry新端点。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 8,
+      "category": "数据采集",
+      "severity": "high",
+      "title": "第三方数据采集最佳方式",
+      "lesson": "第三方欧指/亚盘/大小球用general_search搜索'主队 客队 欧指 亚盘 大小球 赔率 联赛'，从搜索结果中提取。third_party_collector.py可生成搜索关键词和解析欧指，亚盘/大小球由LLM从搜索结果直接提取。",
+      "verified": true,
+      "date": "2026-09-05"
+    },
+    {
+      "id": 9,
+      "category": "数据采集",
+      "severity": "medium",
+      "title": "懂球帝PC端筛选不生效",
+      "lesson": "懂球帝PC端的筛选功能不生效，无法按联赛/日期筛选比赛。移动端或API更可靠。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 10,
+      "category": "数据采集",
+      "severity": "critical",
+      "title": "比分赔率必须获取官方数据，不能用模型推导替代",
+      "lesson": "用户明确否决'比分玩法用泊松模型从胜平负+总进球推导'的做法，认为是偷懒。必须通过API获取31个比分的完整官方赔率。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 11,
+      "category": "模型",
+      "severity": "critical",
+      "title": "半全场独立假设计算EV异常高",
+      "lesson": "半全场用独立假设计算概率会导致EV异常偏高（+200%~+982%），必须用条件概率法：半场比分矩阵(max3球)→动态下半场λ(领先方保守0.8/落后方进攻1.25/平局1.05)→组合全场比分→映射9种半全场结果。",
+      "verified": true,
+      "date": "2026-09-05"
+    },
+    {
+      "id": 12,
+      "category": "模型",
+      "severity": "high",
+      "title": "半全场逆转选项需额外校准",
+      "lesson": "足球中逆转较少见，半全场的'胜负'和'负胜'选项概率需要额外乘以0.6校准，否则EV偏高。",
+      "verified": true,
+      "date": "2026-09-05"
+    },
+    {
+      "id": 13,
+      "category": "模型",
+      "severity": "critical",
+      "title": "胜平负概率计算bug",
+      "lesson": "原代码算'主队进球>=1'而非'主队进球>客队进球'，导致客胜EV异常偏高+298%。胜平负概率必须严格比较主队进球和客队进球。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 14,
+      "category": "模型",
+      "severity": "high",
+      "title": "0球EV偏高根源是λ估计不准确",
+      "lesson": "0球EV偏高不是校准系数问题，根源是用赔率反推λ不准确。优先使用球队强度库（284支球队的主场/客场进攻防守强度）估计λ，球队不在库中时才用赔率反推法。",
+      "verified": true,
+      "date": "2026-09-05"
+    },
+    {
+      "id": 15,
+      "category": "模型",
+      "severity": "medium",
+      "title": "0球校准系数0.5",
+      "lesson": "在λ估计基础上，0球和0:0的模型概率需要乘以0.5校准系数，因为泊松模型对极端低概率事件的估计有偏差。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 16,
+      "category": "模型",
+      "severity": "medium",
+      "title": "泊松模型低估0球概率",
+      "lesson": "基于94750场历史数据统计，实际0球率是泊松模型的2.3-2.8倍。但由于赔率反推λ偏低导致0球概率偏高，综合后校准系数取0.5。",
+      "verified": true,
+      "date": "2026-09-05"
+    },
+    {
+      "id": 17,
+      "category": "模型",
+      "severity": "high",
+      "title": "球队名称别名映射",
+      "lesson": "球队强度库用英文名，竞彩用中文名，需要别名映射（如利物浦→Liverpool、拜仁→Bayern Munich、巴黎→Paris SG）。匹配不上时用赔率反推法备用。",
+      "verified": true,
+      "date": "2026-09-05"
+    },
+    {
+      "id": 18,
+      "category": "模型",
+      "severity": "medium",
+      "title": "高赔玩法需要双锁定硬条件",
+      "lesson": "比分和半全场即使EV为正，也需满足'方向+总进球双锁定'硬条件才能进入投注单，否则高赔低概率风险太大。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 19,
+      "category": "投注策略",
+      "severity": "critical",
+      "title": "禁止硬解码固定投注单数量",
+      "lesson": "不能固定输出5张或3张投注单，必须根据当期比赛质量和价值信号动态决定。每期比赛数量和质量不同，硬解码会导致硬凑。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 20,
+      "category": "投注策略",
+      "severity": "critical",
+      "title": "禁止全混合过关串关",
+      "lesson": "不能所有投注单都用混合过关，需要动态判断：如果几场比赛总进球有价值就做总进球单玩法串关，如果胜平负有价值就做胜平负串关。混合过关只在不同玩法都有价值时使用。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 21,
+      "category": "投注策略",
+      "severity": "critical",
+      "title": "禁止只推荐胜平负和让球胜平负",
+      "lesson": "必须对5种玩法逐一分析，识别每场比赛的最优玩法（Top1/Top2/Top3），不能因为半全场和比分复杂就跳过或降级。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 22,
+      "category": "投注策略",
+      "severity": "high",
+      "title": "投注单内比赛不能重复",
+      "lesson": "同一张投注单内不能重复使用同一场比赛（即使不同玩法也不行）。dynamic_portfolio.py必须有最终合规性校验。",
+      "verified": true,
+      "date": "2026-09-05"
+    },
+    {
+      "id": 23,
+      "category": "投注策略",
+      "severity": "critical",
+      "title": "M串N正确定义",
+      "lesson": "3串4=3场比赛组成3注2串+1注3串=4注；4串11=4场比赛组成6注2串+4注3串+1注4串=11注。M是比赛场数，N是注数，不是M+1场比赛。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 24,
+      "category": "投注策略",
+      "severity": "high",
+      "title": "投注组合方案是多张投注单组合",
+      "lesson": "投注组合方案不是孤注一掷的一张单，而是多张投注单组合：保本单确保不亏/少亏，搏冷单追求高收益，对冲单反向保险。资金分配保本70-80%/搏冷15-20%/对冲5-10%。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 25,
+      "category": "投注策略",
+      "severity": "medium",
+      "title": "投注倍数最低2倍",
+      "lesson": "竞彩投注倍数合法范围是2-99倍，默认倍数应该是2不是1。之前默认1倍是bug，已修复。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 26,
+      "category": "投注策略",
+      "severity": "medium",
+      "title": "单票金额上限6000元",
+      "lesson": "单票金额不能超过6000元，超过需拆票或降倍数。复式投注注数=每场选项数相乘×M串N的N注。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 27,
+      "category": "投注策略",
+      "severity": "medium",
+      "title": "混合过关木桶原则",
+      "lesson": "混合过关最高关数=所选玩法上限最低者。比分/半全场上限4关，总进球6关，胜平负/让球8关。含比分的混合过关最多4关。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 28,
+      "category": "投注策略",
+      "severity": "high",
+      "title": "动态判断双选和复式",
+      "lesson": "确定性不高时应该双选或多选（复式），不是所有投注单都单选。双选复式注数增加，但容错率提高。需要根据比赛质量动态判断。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 29,
+      "category": "工作流",
+      "severity": "critical",
+      "title": "10步线性工作流太复杂，精简为4步迭代式",
+      "lesson": "原10步工作流LLM记不住、容易跳过。精简为4步迭代式：①数据采集+广度扫描 ②深度分析+最优玩法识别 ③动态组单+合规校验 ④反思+输出。每步之间有LLM推理节点。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 30,
+      "category": "工作流",
+      "severity": "high",
+      "title": "分析报告必须是全量分析且在前期输出",
+      "lesson": "分析报告必须是当期所有比赛所有玩法的全量分析，不是只针对筛选后的几场比赛。且应该在工作流前期（步骤1结束时）输出，作为深度分析的候选池，不是后期才输出。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 31,
+      "category": "工作流",
+      "severity": "high",
+      "title": "标准投注单必须输出两种形式",
+      "lesson": "投注单必须输出：①对话卡片形式（用户即时查看）②文档形式（入库用于赛后复盘结算）。格式参考500.com手机端风格，简洁明了。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 32,
+      "category": "工作流",
+      "severity": "critical",
+      "title": "赛后复盘必须回流到赛前分析",
+      "lesson": "自进化闭环：赛后结算→赛后复盘→经验库更新→赛前checklist加载经验。不能让技能不带经验直接开始下一次分析。每次赛前分析前必须加载经验库和历史复盘。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 33,
+      "category": "工作流",
+      "severity": "medium",
+      "title": "执行中必须强制暂停反思",
+      "lesson": "reflection_check.py在分析后和组单后强制暂停，执行3阶段27项检查，防止LLM随意发挥、跳过技能规范。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 34,
+      "category": "工作流",
+      "severity": "high",
+      "title": "技能不能只有文档，必须有代码实现",
+      "lesson": "纯文档说明的技能LLM无法稳定执行，必须有脚本代码实现核心逻辑（数据采集、EV计算、组单、规则校验等）。文档只做方法论和SOP。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 35,
+      "category": "工作流",
+      "severity": "high",
+      "title": "LLM推理能力必须充分发挥",
+      "lesson": "技能不能把所有逻辑都硬编码成固定流程，必须预留8个LLM推理节点：价值判断、玩法选择、串关决策、双选判断、资金分配、风险评估、反方辩论、元认知监控。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 36,
+      "category": "工作流",
+      "severity": "medium",
+      "title": "脚本调用映射表必须存在",
+      "lesson": "38个脚本必须有明确的调用时机映射（script_mapping.md），否则LLM不知道什么时候调用哪个脚本，导致脚本使用率低。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 37,
+      "category": "用户偏好",
+      "severity": "critical",
+      "title": "用户对随意降级和硬解码零容忍",
+      "lesson": "用户绝对不能接受：遇到困难就降级处理（如跳过比分数据）、硬解码固定输出、不按技能规范执行、固定阈值一刀切。遇到问题必须彻底解决，不能延后。",
+      "verified": true,
+      "date": "2026-09-05"
+    },
+    {
+      "id": 38,
+      "category": "用户偏好",
+      "severity": "high",
+      "title": "Top2/Top3指单场玩法推荐",
+      "lesson": "用户说的Top2/Top3不是指比赛场次的Top，而是单场比赛5种玩法推荐的Top。每场比赛必须输出最优玩法Top1/Top2/Top3。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 39,
+      "category": "用户偏好",
+      "severity": "high",
+      "title": "必须联网多维度深度调研验证后才能整合",
+      "lesson": "用户坚持任何新方法、新策略必须先联网多维度深度调研，被验证过才能整合进技能，不能随意整合。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 40,
+      "category": "用户偏好",
+      "severity": "medium",
+      "title": "用户习惯500.com手机端投注单格式",
+      "lesson": "投注单格式参考500.com手机端模拟选号输出，简洁明了，包含场次、联赛、对阵、玩法、选项、赔率、注数、金额、预计奖金。",
+      "verified": true,
+      "date": "2026-09-04"
+    },
+    {
+      "id": 41,
+      "category": "用户偏好",
+      "severity": "high",
+      "title": "否决'临近停售就跳过'的务实策略",
+      "lesson": "用户明确否决'当前期比赛可能已临近停售，有比分数据的做分析，没有的标注跳过'的做法，认为荒谬。必须彻底解决数据获取问题，不能找借口。",
+      "verified": true,
+      "date": "2026-09-05"
+    },
+    {
+      "id": 42,
+      "category": "用户偏好",
+      "severity": "critical",
+      "title": "否决'剩余限制后续优化'的说法",
+      "lesson": "用户不接受'剩余已知限制非阻塞，后续优化'的说法，要求所有问题现在彻底解决，不能延后。",
+      "verified": true,
+      "date": "2026-09-05"
+    },
+    {
+      "id": 43,
+      "category": "赛前检查",
+      "severity": "medium",
+      "title": "【20260904复盘记录】反向投注'热门过热'理论本期5连错：热那亚主胜(客胜80%过热)→科莫4",
+      "lesson": "【20260904复盘记录】反向投注'热门过热'理论本期5连错：热那亚主胜(客胜80%过热)→科莫4-1大胜；伊普斯维奇让胜(利物浦让1球偏深)→利物浦2-0穿盘；伊普斯维奇平局(利物浦5人伤停)→利物浦2-0；伊普斯维奇半全场平平→利物浦6+9分钟闪电进球；斯图加特让平(防1-0赢球输盘)→斯图加特4-1大胜。仅11注样本，记录待验证，不做策略调整。",
+      "source": "20260904赛后复盘",
+      "verified": false,
+      "date": "2026-09-05"
+    },
+    {
+      "id": 44,
+      "category": "赛前检查",
+      "severity": "medium",
+      "title": "【20260904复盘记录】信心等级与命中率强相关：高信心5注命中4注(80%)，ROI+125.2",
+      "lesson": "【20260904复盘记录】信心等级与命中率强相关：高信心5注命中4注(80%)，ROI+125.2%；中信心5注仅命中1注(20%)，ROI-24%；中低信心1注全错。高信心选项值得更高仓位，中信心选项需降低仓位或双选。仅11注样本，记录待验证。",
+      "source": "20260904赛后复盘",
+      "verified": false,
+      "date": "2026-09-05"
+    },
+    {
+      "id": 45,
+      "category": "赛前检查",
+      "severity": "medium",
+      "title": "【20260904复盘记录】玩法表现差异：让球胜平负6注命中4注(66.7%)，ROI+87.7%，",
+      "lesson": "【20260904复盘记录】玩法表现差异：让球胜平负6注命中4注(66.7%)，ROI+87.7%，是当前优势玩法；胜平负2注全错(-100%)；总进球1注命中(+280%)；半全场1注全错；比分1注全错。比分/半全场高赔玩法需要更严格的双锁定条件。仅11注样本，记录待验证。",
+      "source": "20260904赛后复盘",
+      "verified": false,
+      "date": "2026-09-05"
+    },
+    {
+      "id": 46,
+      "category": "赛前检查",
+      "severity": "medium",
+      "title": "【工具修复】session_manager.py的settle_single_bet原是占位代码(有",
+      "lesson": "【工具修复】session_manager.py的settle_single_bet原是占位代码(有result和pick就计命中)，导致所有投注单标记为全中。已修复为实际校验赛果，支持胜平负/让球胜平负/总进球/比分/半全场5种玩法，支持M串1和M串N容错组合奖金计算。期次数据需添加handicap字段(主队视角让球数)。",
+      "source": "20260904赛后复盘",
+      "verified": false,
+      "date": "2026-09-05"
+    },
+    {
+      "id": 47,
+      "category": "赛前检查",
+      "severity": "medium",
+      "title": "【数据缺口】缺少终盘赔率追踪机制，CLV(买入赔率-终盘赔率)无法计算。odds_tracker.j",
+      "lesson": "【数据缺口】缺少终盘赔率追踪机制，CLV(买入赔率-终盘赔率)无法计算。odds_tracker.json为空。建议：赛前采集时记录赔率，赛前1小时再次采集作为终盘赔率，存入odds_tracker。CLV是价值投注的核心指标，正CLV说明买在赔率高点，负CLV说明买在低点。",
+      "source": "20260904赛后复盘",
+      "verified": false,
+      "date": "2026-09-05"
+    },
+    {
+      "id": 48,
+      "category": "赛前检查",
+      "severity": "medium",
+      "title": "【20260904复盘记录】同场比赛多玩法重复投注风险：伊普斯维奇VS利物浦有4注(让胜/平局/半全",
+      "lesson": "【20260904复盘记录】同场比赛多玩法重复投注风险：伊普斯维奇VS利物浦有4注(让胜/平局/半全场平平/让负)，其中3注反向判断错误，仅让负正确；贝蒂斯VS皇马有2注让胜(同向重复)。单场比赛投注过于集中，一旦方向判断错误则多注连错。建议单场比赛不超过2注，且避免同向重复投注。",
+      "source": "20260904赛后复盘",
+      "verified": false,
+      "date": "2026-09-05"
+    },
+    {
+      "id": "L0049",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T16:13:16.275860",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0050",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T16:25:01.016349",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0051",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T16:26:51.055341",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0052",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T16:28:13.145902",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0053",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T16:29:04.985497",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0054",
+      "lesson": "工作流测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T16:29:57.361583",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0055",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T16:29:57.467815",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0056",
+      "lesson": "工作流测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T16:30:28.899457",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0057",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T16:30:29.008946",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0058",
+      "lesson": "工作流测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T16:31:03.824940",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0059",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T16:31:03.991729",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0060",
+      "lesson": "工作流测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T16:38:57.248360",
+      "usage_count": 0,
+      "success_count": 0
+    },
+    {
+      "id": "L0061",
+      "lesson": "测试经验",
+      "category": "分析",
+      "weight": 1.0,
+      "created_at": "2026-09-06T16:38:57.332031",
+      "usage_count": 0,
+      "success_count": 0
+    }
+  ],
+  "next_id": 62
+}

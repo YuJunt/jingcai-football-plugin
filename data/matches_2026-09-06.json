@@ -1,0 +1,7 @@
+{
+  "date": "2026-09-06",
+  "count": 0,
+  "matches": [],
+  "source": "sporttery.cn API",
+  "note": "共0场在售比赛。完整5玩法赔率需逐场调用get_official_odds(match_id)"
+}

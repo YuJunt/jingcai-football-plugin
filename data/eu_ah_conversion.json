@@ -1,0 +1,50 @@
+{
+  "description": "欧亚赔率转换对照表+盘口语言识别规则",
+  "source": "专业博彩分析方法论+历史数据校准",
+  "last_updated": "2026-09-06",
+  "eu_ah_conversion": {
+    "平手(0)": {"eu_home_range": [2.50, 2.60], "eu_draw_range": [3.10, 3.30], "eu_away_range": [2.50, 2.60], "interpretation": "实力相当，主胜和平局都有机会"},
+    "平半(0/0.5)": {"eu_home_range": [2.20, 2.40], "eu_draw_range": [3.20, 3.40], "eu_away_range": [2.80, 3.10], "interpretation": "主队略优，赢球即赢盘，平局输半"},
+    "半球(0.5)": {"eu_home_range": [1.90, 2.10], "eu_draw_range": [3.30, 3.50], "eu_away_range": [3.20, 3.60], "interpretation": "主队优势明显，赢球才赢盘，平局全输"},
+    "半一(0.5/1)": {"eu_home_range": [1.70, 1.90], "eu_draw_range": [3.40, 3.60], "eu_away_range": [3.80, 4.20], "interpretation": "主队优势较大，赢1球赢半，赢2球全赢"},
+    "一球(1)": {"eu_home_range": [1.50, 1.70], "eu_draw_range": [3.60, 3.90], "eu_away_range": [4.50, 5.50], "interpretation": "主队强势，赢1球走盘，赢2球全赢"},
+    "一球球半(1/1.5)": {"eu_home_range": [1.40, 1.55], "eu_draw_range": [3.80, 4.10], "eu_away_range": [5.50, 6.50], "interpretation": "主队很强，赢1球输半，赢2球全赢"},
+    "球半(1.5)": {"eu_home_range": [1.30, 1.45], "eu_draw_range": [4.00, 4.50], "eu_away_range": [6.50, 8.00], "interpretation": "主队极强，赢2球才赢盘"},
+    "球半两球(1.5/2)": {"eu_home_range": [1.20, 1.35], "eu_draw_range": [4.50, 5.00], "eu_away_range": [8.00, 10.00], "interpretation": "主队碾压级，赢2球赢半，赢3球全赢"},
+    "两球(2)": {"eu_home_range": [1.15, 1.25], "eu_draw_range": [5.00, 6.00], "eu_away_range": [10.00, 15.00], "interpretation": "主队绝对优势，赢2球走盘"}
+  },
+  "handicap_language": {
+    "升盘降水": {"pattern": "盘口升高+水位下降", "interpretation": "机构真实看好上盘，资金大量流入上盘", "signal": "正向", "confidence": "高"},
+    "降盘升水": {"pattern": "盘口降低+水位上升", "interpretation": "表面不看好上盘，若基本面强硬可能是赶下盘（诱下）", "signal": "反向", "confidence": "中"},
+    "升盘升水": {"pattern": "盘口升高+水位上升", "interpretation": "盘口升但水位也升，机构对上盘信心不足，可能是诱上", "signal": "反向", "confidence": "中高"},
+    "降盘降水": {"pattern": "盘口降低+水位下降", "interpretation": "盘口降但水位也降，机构在降低赔付，可能真实看好下盘", "signal": "正向(下盘)", "confidence": "中高"},
+    "盘口不变水位升": {"pattern": "盘口不变+水位上升", "interpretation": "上盘水位升高，机构在增加上盘回报，可能不看好上盘打出", "signal": "反向", "confidence": "中"},
+    "盘口不变水位降": {"pattern": "盘口不变+水位下降", "interpretation": "上盘水位降低，机构在减少上盘赔付，真实看好上盘", "signal": "正向", "confidence": "高"},
+    "大热退盘": {"pattern": "热门方盘口突然退盘", "interpretation": "关键一票否决信号！热门方过热，机构退盘防范，直接否决热门方", "signal": "强反向", "confidence": "极高"},
+    "临场急升": {"pattern": "临场1小时内盘口急升", "interpretation": "临场资金大幅流入，可能是内幕信息或机构最后调整", "signal": "需结合基本面", "confidence": "中"}
+  },
+  "theoretical_handicap": {
+    "formula": "理论让球 = (主队Elo - 客队Elo) / 200 + 主场优势修正(0.25)",
+    "elo_diff_to_handicap": {
+      "0-50": "平手",
+      "50-100": "平半",
+      "100-150": "半球",
+      "150-200": "半一",
+      "200-250": "一球",
+      "250-300": "一球球半",
+      "300-350": "球半",
+      "350+": "球半两球以上"
+    },
+    "deviation_analysis": {
+      "actual_deeper_than_theoretical": "实际盘口比理论深 → 机构高估主队，可能诱上盘",
+      "actual_shallower_than_theoretical": "实际盘口比理论浅 → 机构低估主队，可能不看好上盘打出",
+      "match": "实际盘口与理论一致 → 市场定价合理，无明显价值"
+    }
+  },
+  "usage_notes": {
+    "conversion_use": "用欧赔反推亚盘，或用亚盘反推欧赔，寻找定价偏差",
+    "handicap_language_priority": "大热退盘 > 盘口不变水位降 > 升盘降水 > 其他",
+    "theoretical_deviation": "理论盘口与实际盘口偏差超过1个档位（如理论半球实际平半），需重点关注",
+    "jingcai_official_vs_market": "竞彩官方让球数 vs 亚盘市场让球数偏离，是让球胜平负玩法的重要价值信号"
+  }
+}

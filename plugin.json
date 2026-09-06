@@ -1,0 +1,151 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "jingcai-football-plugin",
+  "version": "1.8.1",
+  "description": "竞彩足球全量深度分析与投注方案插件v1.5.0。包含6个技能（1核心+5玩法专属）和6个MCP服务器（123个工具），覆盖数据采集、深度分析、报告生成、质量控制、投注组合、自进化闭环全流程。核心能力：官方5玩法赔率+8大资讯API直采、支持率/资金流/置信度过滤、ML集成模型（83328场训练）、Dixon-Coles/泊松/半全场条件概率、混合过关木桶校验、保本组合+M串N+复式容错、赛后结算+自进化回流。全部使用免费数据，无需付费数据源。",
+  "author": {
+    "name": "jingcai-football-team",
+    "email": "jingcai@example.com",
+    "url": "https://github.com/jingcai-football/plugin"
+  },
+  "homepage": "https://github.com/jingcai-football/plugin",
+  "repository": "https://github.com/jingcai-football/plugin.git",
+  "license": "MIT",
+  "keywords": [
+    "竞彩足球",
+    "体育彩票",
+    "足球分析",
+    "投注策略",
+    "价值投注",
+    "蒙特卡洛模拟",
+    "多智能体",
+    "半全场条件概率",
+    "CLV追踪",
+    "历史数据分析",
+    "自进化闭环"
+  ],
+  "extensions": {
+    "com.jingcai.football": {
+      "skills": [
+        {
+          "name": "jingcai-core",
+          "path": "./skills/jingcai-core",
+          "description": "竞彩足球核心技能（协调层）。工作流编排、通用方法论、质量控制、自进化闭环、报告生成。"
+        },
+        {
+          "name": "jingcai-spf",
+          "path": "./skills/jingcai-spf",
+          "description": "胜平负玩法专属技能。稳胆首选、平局价值、冷门博冷策略。"
+        },
+        {
+          "name": "jingcai-rangqiu",
+          "path": "./skills/jingcai-rangqiu",
+          "description": "让球胜平负玩法专属技能。让平专项、赢球输盘风险、亚盘水位辅助。"
+        },
+        {
+          "name": "jingcai-zongjinqiu",
+          "path": "./skills/jingcai-zongjinqiu",
+          "description": "总进球玩法专属技能。大小球验证、档位集中度、攻防节奏分析。"
+        },
+        {
+          "name": "jingcai-bifen",
+          "path": "./skills/jingcai-bifen",
+          "description": "比分玩法专属技能。方向+总进球双锁定、比分收敛度五步法、Dixon-Coles修正。"
+        },
+        {
+          "name": "jingcai-banquanchang",
+          "path": "./skills/jingcai-banquanchang",
+          "description": "半全场玩法专属技能。半场矩阵→动态下半场λ→映射9结果、逆转选项分析、比赛节奏。"
+        }
+      ],
+      "mcpServers": [
+        {
+          "name": "data-collector",
+          "path": "./servers/data-collector",
+          "description": "数据采集MCP服务器。31个工具：官方赛程/5玩法赔率/8大资讯/支持率/赛果/赔率走势/第三方数据/批量采集/500.com解析。"
+        },
+        {
+          "name": "analyzer",
+          "path": "./servers/analyzer",
+          "description": "分析引擎MCP服务器。47个工具：概率模型/EV计算/4模型集成/泊松/Dixon-Coles/半全场条件概率/资金流/置信度过滤/ML预测/历史统计。"
+        },
+        {
+          "name": "report-generator",
+          "path": "./servers/report-generator",
+          "description": "报告生成MCP服务器。5个工具：数据报告/分析报告/投注单/可视化HTML。"
+        },
+        {
+          "name": "quality-control",
+          "path": "./servers/quality-control",
+          "description": "质量控制MCP服务器。4个工具：规则校验/决策审计/混合过关木桶原则/AI推理质量检查。"
+        },
+        {
+          "name": "portfolio",
+          "path": "./servers/portfolio",
+          "description": "投注组合MCP服务器。18个工具：保本组合/M串N/复式/对冲/资金管理/串关奖金计算/动态组合。"
+        },
+        {
+          "name": "self-evolution",
+          "path": "./servers/self-evolution",
+          "description": "自进化MCP服务器。17个工具：赛后结算/复盘/经验提炼/模型校准/策略回测/参数自调整/漂移检测/心理防护/飞书同步。"
+        }
+      ],
+      "data": {
+        "path": "./data",
+        "description": "数据资产目录。历史比赛数据（31联赛83328场训练样本）、ML模型（GradientBoosting 53.1%/RandomForest 51.2%）、联赛特征库、球队强度库、校准参数、经验库、案例库、决策日志。"
+      }
+    },
+    "mcpServers": {
+      "data-collector": {
+        "command": "python3",
+        "args": [
+          "./servers/data-collector/server.py"
+        ],
+        "transport": "stdio"
+      },
+      "analyzer": {
+        "command": "python3",
+        "args": [
+          "./servers/analyzer/server.py"
+        ],
+        "transport": "stdio"
+      },
+      "report-generator": {
+        "command": "python3",
+        "args": [
+          "./servers/report-generator/server.py"
+        ],
+        "transport": "stdio"
+      },
+      "quality-control": {
+        "command": "python3",
+        "args": [
+          "./servers/quality-control/server.py"
+        ],
+        "transport": "stdio"
+      },
+      "portfolio": {
+        "command": "python3",
+        "args": [
+          "./servers/portfolio/server.py"
+        ],
+        "transport": "stdio"
+      },
+      "self-evolution": {
+        "command": "python3",
+        "args": [
+          "./servers/self-evolution/server.py"
+        ],
+        "transport": "stdio"
+      },
+      "workflow": {
+        "command": "python3",
+        "args": [
+          "./servers/workflow/server.py"
+        ],
+        "transport": "stdio",
+        "type": "stdio"
+      }
+    }
+  }
+}

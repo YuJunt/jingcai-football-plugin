@@ -1,0 +1,63 @@
+{
+  "description": "半全场9种组合分联赛历史频率基准库",
+  "source": "五大联赛4560场统计+36联赛特征校准",
+  "last_updated": "2026-09-06",
+  "global_baseline": {
+    "胜胜": 0.298,
+    "胜平": 0.058,
+    "胜负": 0.038,
+    "平胜": 0.185,
+    "平平": 0.112,
+    "平负": 0.158,
+    "负胜": 0.042,
+    "负平": 0.047,
+    "负负": 0.167
+  },
+  "key_statistics": {
+    "half_time_lead_win_rate": 0.682,
+    "half_time_draw_home_win_rate": 0.425,
+    "draw_start_combinations_ratio": 0.528,
+    "core_zone_combinations": ["胜胜", "平胜", "负负", "平平", "平负"],
+    "core_zone_ratio": 0.827,
+    "comeback_combinations": ["负胜", "胜负"],
+    "comeback_ratio": 0.080
+  },
+  "league_profiles": {
+    "E0": {"name": "英超", "attack_level": "high", "htft_adjust": {"胜胜": 0.31, "平胜": 0.19, "负负": 0.15, "平平": 0.10, "平负": 0.15}},
+    "E1": {"name": "英冠", "attack_level": "medium", "htft_adjust": {"胜胜": 0.28, "平胜": 0.19, "负负": 0.17, "平平": 0.12, "平负": 0.16}},
+    "D1": {"name": "德甲", "attack_level": "very_high", "htft_adjust": {"胜胜": 0.32, "平胜": 0.18, "负负": 0.16, "平平": 0.09, "平负": 0.14}},
+    "D2": {"name": "德乙", "attack_level": "high", "htft_adjust": {"胜胜": 0.30, "平胜": 0.19, "负负": 0.16, "平平": 0.10, "平负": 0.15}},
+    "SP1": {"name": "西甲", "attack_level": "medium", "htft_adjust": {"胜胜": 0.29, "平胜": 0.18, "负负": 0.17, "平平": 0.12, "平负": 0.16}},
+    "SP2": {"name": "西乙", "attack_level": "medium_low", "htft_adjust": {"胜胜": 0.27, "平胜": 0.18, "负负": 0.18, "平平": 0.13, "平负": 0.17}},
+    "I1": {"name": "意甲", "attack_level": "low", "htft_adjust": {"胜胜": 0.27, "平胜": 0.18, "负负": 0.18, "平平": 0.14, "平负": 0.17}},
+    "I2": {"name": "意乙", "attack_level": "low", "htft_adjust": {"胜胜": 0.26, "平胜": 0.18, "负负": 0.19, "平平": 0.14, "平负": 0.17}},
+    "F1": {"name": "法甲", "attack_level": "medium_low", "htft_adjust": {"胜胜": 0.28, "平胜": 0.18, "负负": 0.18, "平平": 0.13, "平负": 0.17}},
+    "F2": {"name": "法乙", "attack_level": "low", "htft_adjust": {"胜胜": 0.26, "平胜": 0.18, "负负": 0.19, "平平": 0.14, "平负": 0.17}},
+    "N": {"name": "荷甲", "attack_level": "very_high", "htft_adjust": {"胜胜": 0.33, "平胜": 0.18, "负负": 0.15, "平平": 0.08, "平负": 0.13}},
+    "B1": {"name": "比甲", "attack_level": "high", "htft_adjust": {"胜胜": 0.31, "平胜": 0.18, "负负": 0.16, "平平": 0.10, "平负": 0.15}},
+    "P1": {"name": "葡超", "attack_level": "medium", "htft_adjust": {"胜胜": 0.29, "平胜": 0.18, "负负": 0.17, "平平": 0.12, "平负": 0.16}},
+    "SC0": {"name": "苏超", "attack_level": "high", "htft_adjust": {"胜胜": 0.31, "平胜": 0.18, "负负": 0.16, "平平": 0.10, "平负": 0.15}},
+    "T1": {"name": "土超", "attack_level": "high", "htft_adjust": {"胜胜": 0.30, "平胜": 0.19, "负负": 0.16, "平平": 0.10, "平负": 0.15}},
+    "RUS": {"name": "俄超", "attack_level": "medium_low", "htft_adjust": {"胜胜": 0.28, "平胜": 0.18, "负负": 0.18, "平平": 0.13, "平负": 0.17}},
+    "PL": {"name": "波超", "attack_level": "medium_low", "htft_adjust": {"胜胜": 0.27, "平胜": 0.18, "负负": 0.18, "平平": 0.13, "平负": 0.17}},
+    "NOR": {"name": "挪超", "attack_level": "high", "htft_adjust": {"胜胜": 0.31, "平胜": 0.18, "负负": 0.15, "平平": 0.10, "平负": 0.15}},
+    "SWE": {"name": "瑞超", "attack_level": "medium", "htft_adjust": {"胜胜": 0.29, "平胜": 0.18, "负负": 0.17, "平平": 0.12, "平负": 0.16}},
+    "FIN": {"name": "芬超", "attack_level": "medium_low", "htft_adjust": {"胜胜": 0.28, "平胜": 0.18, "负负": 0.18, "平平": 0.13, "平负": 0.17}},
+    "MEX": {"name": "墨超", "attack_level": "medium", "htft_adjust": {"胜胜": 0.29, "平胜": 0.18, "负负": 0.17, "平平": 0.12, "平负": 0.16}},
+    "USA": {"name": "美职", "attack_level": "medium", "htft_adjust": {"胜胜": 0.29, "平胜": 0.19, "负负": 0.17, "平平": 0.11, "平负": 0.16}},
+    "JPN": {"name": "日职", "attack_level": "medium", "htft_adjust": {"胜胜": 0.28, "平胜": 0.19, "负负": 0.17, "平平": 0.12, "平负": 0.16}},
+    "CHN": {"name": "中超", "attack_level": "medium", "htft_adjust": {"胜胜": 0.29, "平胜": 0.18, "负负": 0.17, "平平": 0.12, "平负": 0.16}},
+    "BRA": {"name": "巴甲", "attack_level": "medium_low", "htft_adjust": {"胜胜": 0.27, "平胜": 0.18, "负负": 0.18, "平平": 0.13, "平负": 0.17}},
+    "ARG": {"name": "阿甲", "attack_level": "low", "htft_adjust": {"胜胜": 0.26, "平胜": 0.18, "负负": 0.19, "平平": 0.14, "平负": 0.17}},
+    "AUT": {"name": "奥甲", "attack_level": "high", "htft_adjust": {"胜胜": 0.31, "平胜": 0.18, "负负": 0.16, "平平": 0.10, "平负": 0.15}},
+    "E2": {"name": "英甲", "attack_level": "medium", "htft_adjust": {"胜胜": 0.28, "平胜": 0.19, "负负": 0.17, "平平": 0.12, "平负": 0.16}},
+    "E3": {"name": "英乙", "attack_level": "medium_low", "htft_adjust": {"胜胜": 0.27, "平胜": 0.19, "负负": 0.18, "平平": 0.13, "平负": 0.17}}
+  },
+  "usage_notes": {
+    "core_zone": "胜胜/平胜/负负/平平/平负合计82.7%，是分析重点区间",
+    "draw_start": "平开头组合占52.8%，不要默认强队半场打穿",
+    "comeback_warning": "负胜/胜负逆转组合仅8%，高赔但概率极低，需谨慎",
+    "shgd_importance": "下半场进球差(SHGD)是预测平→胜/平→负的最佳指标",
+    "calibration_method": "模型概率 × 0.7 + 联赛历史频率 × 0.3 = 校准后概率"
+  }
+}

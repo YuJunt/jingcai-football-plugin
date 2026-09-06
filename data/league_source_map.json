@@ -1,0 +1,62 @@
+{
+  "_comment": "竞彩历史数据联赛源映射表。history=本地history JSON文件名(Div命名); fd_code=football-data.co.uk下载URL代码(可能与Div不同,如荷甲URL=N但Div=N1); format=cross_year跨年度(当前赛季2627)/calendar自然年(当前赛季2526); fbref_id=FBRef联赛ID(用于补全football-data不覆盖的联赛)。更新时间2026-09-06",
+  "_season_rule": {
+    "cross_year": "欧洲秋季-春季赛制。当前进行中赛季=2627(2026-27)，每年8月中下旬新赛季文件陆续发布，各联赛发布节奏不同，取不到时重试或等几天",
+    "calendar": "自然年赛制(春-秋)。当前进行中赛季=2526(与欧洲2025-26赛季时间窗重叠)，次年3月前后更新到2627",
+    "url_template": "https://www.football-data.co.uk/mmz4281/{season}/{fd_code}.csv",
+    "access": "数据中心IP直连被封(HTTP503)，必须经web.fetch通道下载CSV到data/downloads/，再用merge_csv_update.py合并"
+  },
+  "leagues": {
+    "E0":  {"fd_code":"E0",  "name":"英超",   "format":"cross_year", "fbref_id":"9"},
+    "E1":  {"fd_code":"E1",  "name":"英冠",   "format":"cross_year", "fbref_id":"10"},
+    "E2":  {"fd_code":"E2",  "name":"英甲",   "format":"cross_year", "fbref_id":"15"},
+    "E3":  {"fd_code":"E3",  "name":"英乙",   "format":"cross_year", "fbref_id":"16"},
+    "EC":  {"fd_code":"EC",  "name":"英议联", "format":"cross_year", "fbref_id":"34"},
+    "D1":  {"fd_code":"D1",  "name":"德甲",   "format":"cross_year", "fbref_id":"20"},
+    "D2":  {"fd_code":"D2",  "name":"德乙",   "format":"cross_year", "fbref_id":"33"},
+    "I1":  {"fd_code":"I1",  "name":"意甲",   "format":"cross_year", "fbref_id":"11"},
+    "I2":  {"fd_code":"I2",  "name":"意乙",   "format":"cross_year", "fbref_id":"18"},
+    "SP1": {"fd_code":"SP1", "name":"西甲",   "format":"cross_year", "fbref_id":"12"},
+    "SP2": {"fd_code":"SP2", "name":"西乙",   "format":"cross_year", "fbref_id":"17"},
+    "F1":  {"fd_code":"F1",  "name":"法甲",   "format":"cross_year", "fbref_id":"13"},
+    "F2":  {"fd_code":"F2",  "name":"法乙",   "format":"cross_year", "fbref_id":"60"},
+    "N1":  {"fd_code":"N",   "name":"荷甲",   "format":"cross_year", "fbref_id":"23"},
+    "B1":  {"fd_code":"B1",  "name":"比甲",   "format":"cross_year", "fbref_id":"37"},
+    "P1":  {"fd_code":"P1",  "name":"葡超",   "format":"cross_year", "fbref_id":"32"},
+    "SC0": {"fd_code":"SC0", "name":"苏超",   "format":"cross_year", "fbref_id":"40"},
+    "SC1": {"fd_code":"SC1", "name":"苏冠",   "format":"cross_year", "fbref_id":"41"},
+    "SC2": {"fd_code":"SC2", "name":"苏甲",   "format":"cross_year", "fbref_id":"42"},
+    "SC3": {"fd_code":"SC3", "name":"苏乙",   "format":"cross_year", "fbref_id":"43"},
+    "T1":  {"fd_code":"T1",  "name":"土超",   "format":"cross_year", "fbref_id":"26"},
+    "G1":  {"fd_code":"G1",  "name":"希超",   "format":"cross_year", "fbref_id":"27"},
+    "PL":  {"fd_code":"PL",  "name":"波超",   "format":"cross_year", "fbref_id":"36"},
+    "ARG": {"fd_code":"ARG", "name":"阿甲",   "format":"calendar",   "fbref_id":"21"},
+    "BRA": {"fd_code":"BRA", "name":"巴甲",   "format":"calendar",   "fbref_id":"24"},
+    "CHN": {"fd_code":"CHN", "name":"中超",   "format":"calendar",   "fbref_id":"43"},
+    "JPN": {"fd_code":"JPN", "name":"日职",   "format":"calendar",   "fbref_id":"25"},
+    "MEX": {"fd_code":"MEX", "name":"墨超",   "format":"calendar",   "fbref_id":"31"},
+    "NOR": {"fd_code":"NOR", "name":"挪超",   "format":"calendar",   "fbref_id":"29"},
+    "SWE": {"fd_code":"SWE", "name":"瑞超",   "format":"calendar",   "fbref_id":"28"},
+    "USA": {"fd_code":"USA", "name":"美职",   "format":"calendar",   "fbref_id":"22"}
+  },
+  "archived_low_quality": {
+    "_comment": "2026-09-06移除：竞彩极少覆盖+无射门/盘口数据，归档到history_archive_low_quality/",
+    "AUT": {"name":"奥甲", "reason":"竞彩极少开售，无射门数据"},
+    "ROU": {"name":"罗甲", "reason":"竞彩极少开售，无射门数据"},
+    "RUS": {"name":"俄超", "reason":"竞彩已停售，无射门数据"},
+    "IRL": {"name":"爱超", "reason":"竞彩极少开售，无射门数据"},
+    "FIN": {"name":"芬超", "reason":"竞彩极少开售，无射门数据"}
+  },
+  "missing_leagues": {
+    "_comment": "football-data不覆盖、但竞彩受注、需用FBRef免费补全的联赛",
+    "KOR": {"name":"韩职K联赛", "fbref_id":"55", "format":"calendar", "note":"FBRef comps/55，2026赛季在更，免费，含xG/射门"},
+    "SAU": {"name":"沙特职业联赛", "fbref_id":"70", "format":"cross_year", "note":"FBRef 2026-27在更(Al-Nassr/Al-Hilal等)，免费，含xG；fbref_id需在comps页最终确认"},
+    "cup_competitions": {"name":"杯赛(欧冠/欧联/亚冠/解放者杯/世俱杯等)", "note":"football-data不含杯赛，FBRef覆盖洲际杯赛；竞彩杯赛受注时按需补，不做常驻历史库"}
+  },
+  "jingcai_on_sale_2026_09_06": {
+    "_comment": "2026-09-06在售46场的联赛覆盖核对结果",
+    "covered": {"SP1":"西甲8场","I1":"意甲7场","F1":"法甲6场","E0":"英超3场","D1":"德甲3场","P1":"葡超3场","BRA":"巴甲3场","JPN":"日职3场","NOR":"挪超2场","N1":"荷甲2场","SWE":"瑞超2场","E1":"英冠1场"},
+    "missing": {"SAU":"沙职2场","KOR":"韩职2场"},
+    "match_coverage": "43/46 = 91.5%（按场次），12/14 = 85.7%（按联赛）"
+  }
+}

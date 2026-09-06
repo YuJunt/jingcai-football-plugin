@@ -1,0 +1,67 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "data-collector": {
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "./servers/data-collector/server.py"
+      ],
+      "cwd": "${PLUGIN_ROOT}",
+      "description": "数据采集MCP服务器。31个工具：官方赛程/5玩法赔率/8大资讯/支持率/赛果/赔率走势/第三方数据/批量采集/500.com解析。"
+    },
+    "analyzer": {
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "./servers/analyzer/server.py"
+      ],
+      "cwd": "${PLUGIN_ROOT}",
+      "description": "分析引擎MCP服务器。48个工具：概率模型/EV/4模型集成/泊松/Dixon-Coles/半全场条件概率/资金流/置信度过滤/ML预测。"
+    },
+    "report-generator": {
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "./servers/report-generator/server.py"
+      ],
+      "cwd": "${PLUGIN_ROOT}",
+      "description": "报告生成MCP服务器。5个工具：数据报告/分析报告/投注单/可视化HTML。"
+    },
+    "quality-control": {
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "./servers/quality-control/server.py"
+      ],
+      "cwd": "${PLUGIN_ROOT}",
+      "description": "质量控制MCP服务器。4个工具：规则校验/决策审计/混合过关木桶原则/AI推理质量。"
+    },
+    "portfolio": {
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "./servers/portfolio/server.py"
+      ],
+      "cwd": "${PLUGIN_ROOT}",
+      "description": "投注组合MCP服务器。19个工具：保本组合/M串N/复式/对冲/资金管理/串关奖金。"
+    },
+    "self-evolution": {
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "./servers/self-evolution/server.py"
+      ],
+      "cwd": "${PLUGIN_ROOT}",
+      "description": "自进化MCP服务器。17个工具：赛后结算/复盘/经验提炼/模型校准/策略回测/参数自调整/飞书同步。"
+    },
+    "workflow": {
+      "command": "python3",
+      "args": [
+        "./servers/workflow/server.py"
+      ],
+      "transport": "stdio",
+      "type": "stdio"
+    }
+  }
+}

@@ -1,0 +1,141 @@
+{
+  "start_time": "2026-09-06T02:23:05.301047",
+  "end_time": "2026-09-06T02:23:07.626048",
+  "stages": {
+    "数据采集": {
+      "tests": [
+        {
+          "name": "导入data-collector模块",
+          "passed": false,
+          "details": "Unable to generate pydantic-core schema for <built-in function any>. Set `arbitrary_types_allowed=True` in the model_config to ignore this error or implement `__get_pydantic_core_schema__` on your type to fully support it.\n\nIf you got this error by calling handler(<some type>) within `__get_pydantic_core_schema__` then you likely need to call `handler.generate_schema(<some type>)` since we do not call `__get_pydantic_core_schema__` on `<some type>` otherwise to avoid infinite recursion.\n\nFor further information visit https://errors.pydantic.dev/2.11/u/schema-for-unknown-type",
+          "duration": 1.99
+        }
+      ],
+      "passed": 0,
+      "failed": 1
+    },
+    "深度分析": {
+      "tests": [
+        {
+          "name": "导入analyzer模块",
+          "passed": true,
+          "details": "成功导入",
+          "duration": 0.08
+        },
+        {
+          "name": "验证MCP工具数量",
+          "passed": true,
+          "details": "26个工具（预期>=26）",
+          "duration": 0
+        },
+        {
+          "name": "poisson_predict",
+          "passed": false,
+          "details": "泊松预测成功",
+          "duration": 0.0
+        },
+        {
+          "name": "calculate_ev",
+          "passed": false,
+          "details": "EV=N/A（预期0.19999999999999996）",
+          "duration": 0.0
+        },
+        {
+          "name": "multi_agent_debate",
+          "passed": false,
+          "details": "共识:N/A, 5个agent",
+          "duration": 0.0
+        },
+        {
+          "name": "conditional_prob_half_full",
+          "passed": false,
+          "details": "半全场条件概率成功",
+          "duration": 0.0
+        },
+        {
+          "name": "monte_carlo_simulate",
+          "passed": false,
+          "details": "蒙特卡洛模拟成功",
+          "duration": 0.0
+        }
+      ],
+      "passed": 2,
+      "failed": 5
+    },
+    "投注组合": {
+      "tests": [
+        {
+          "name": "导入portfolio模块",
+          "passed": true,
+          "details": "成功导入",
+          "duration": 0.112
+        },
+        {
+          "name": "验证MCP工具数量",
+          "passed": true,
+          "details": "16个工具（预期>=16）",
+          "duration": 0
+        },
+        {
+          "name": "calculate_parlay_payout",
+          "passed": false,
+          "details": "module 'portfolio' has no attribute 'calculate_parlay_payout'",
+          "duration": 0.0
+        },
+        {
+          "name": "generate_bet_slip_500",
+          "passed": false,
+          "details": "500风格投注单生成成功",
+          "duration": 0.0
+        }
+      ],
+      "passed": 2,
+      "failed": 2
+    },
+    "自进化": {
+      "tests": [
+        {
+          "name": "导入self-evolution模块",
+          "passed": true,
+          "details": "成功导入",
+          "duration": 0.09
+        },
+        {
+          "name": "验证MCP工具数量",
+          "passed": true,
+          "details": "17个工具（预期>=17）",
+          "duration": 0
+        },
+        {
+          "name": "add_decision_record",
+          "passed": false,
+          "details": "module 'self_evolution' has no attribute 'add_decision_record'",
+          "duration": 0.0
+        },
+        {
+          "name": "add_lesson",
+          "passed": false,
+          "details": "经验教训添加成功",
+          "duration": 0.052
+        }
+      ],
+      "passed": 2,
+      "failed": 2
+    }
+  },
+  "total_tests": 16,
+  "passed_tests": 6,
+  "failed_tests": 10,
+  "errors": [
+    "数据采集/导入data-collector模块: Unable to generate pydantic-core schema for <built-in function any>. Set `arbitrary_types_allowed=True` in the model_config to ignore this error or implement `__get_pydantic_core_schema__` on your type to fully support it.\n\nIf you got this error by calling handler(<some type>) within `__get_pydantic_core_schema__` then you likely need to call `handler.generate_schema(<some type>)` since we do not call `__get_pydantic_core_schema__` on `<some type>` otherwise to avoid infinite recursion.\n\nFor further information visit https://errors.pydantic.dev/2.11/u/schema-for-unknown-type",
+    "深度分析/poisson_predict: 泊松预测成功",
+    "深度分析/calculate_ev: EV=N/A（预期0.19999999999999996）",
+    "深度分析/multi_agent_debate: 共识:N/A, 5个agent",
+    "深度分析/conditional_prob_half_full: 半全场条件概率成功",
+    "深度分析/monte_carlo_simulate: 蒙特卡洛模拟成功",
+    "投注组合/calculate_parlay_payout: module 'portfolio' has no attribute 'calculate_parlay_payout'",
+    "投注组合/generate_bet_slip_500: 500风格投注单生成成功",
+    "自进化/add_decision_record: module 'self_evolution' has no attribute 'add_decision_record'",
+    "自进化/add_lesson: 经验教训添加成功"
+  ]
+}

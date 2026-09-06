@@ -1,0 +1,19 @@
+{
+  "total_initial": 1000.0,
+  "current": 968.0,
+  "max_per_session_pct": 0.05,
+  "history": [
+    {
+      "session": "20260904",
+      "type": "bet",
+      "amount": -32.0,
+      "balance": 968.0,
+      "time": "2026-09-04 17:02:04"
+    }
+  ],
+  "consecutive_losses": 0,
+  "max_consecutive_losses": 0,
+  "total_bet": 32.0,
+  "total_return": 0,
+  "created_at": "2026-09-04 17:02:04"
+}
