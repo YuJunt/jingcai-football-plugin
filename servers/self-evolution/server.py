@@ -975,5 +975,35 @@ def sync_to_feishu(data_type: str, data: dict, table_name: str = None) -> dict:
         'total_syncs': len(sync_log['syncs'])
     }
 
+
+@mcp.tool()
+def get_user_preferences() -> dict:
+    """获取用户偏好配置（预算/风险偏好/玩法偏好/投注风格）"""
+    import json, os
+    pref_file = os.path.join(PLUGIN_ROOT, 'data', 'user_preferences.json')
+    if os.path.exists(pref_file):
+        with open(pref_file, 'r', encoding='utf-8') as f:
+            prefs = json.load(f)
+        return {'success': True, 'data': prefs}
+    return {'success': False, 'error': '用户偏好文件不存在'}
+
+
+@mcp.tool()
+def update_user_preferences(updates: dict) -> dict:
+    """更新用户偏好配置"""
+    import json, os
+    from datetime import datetime
+    pref_file = os.path.join(PLUGIN_ROOT, 'data', 'user_preferences.json')
+    if os.path.exists(pref_file):
+        with open(pref_file, 'r', encoding='utf-8') as f:
+            prefs = json.load(f)
+    else:
+        prefs = {}
+    prefs.update(updates)
+    prefs['last_updated'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    with open(pref_file, 'w', encoding='utf-8') as f:
+        json.dump(prefs, f, ensure_ascii=False, indent=2)
+    return {'success': True, 'data': prefs, 'message': '用户偏好已更新'}
+
 if __name__ == '__main__':
     mcp.run()

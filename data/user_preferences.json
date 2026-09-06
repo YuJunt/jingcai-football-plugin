@@ -1,0 +1,26 @@
+{
+  "default_budget": 500,
+  "risk_preference": "balanced",
+  "play_preferences": {
+    "胜平负": "high",
+    "让球胜平负": "high",
+    "总进球": "medium",
+    "比分": "low",
+    "半全场": "low"
+  },
+  "betting_style": "balanced",
+  "preferred_parlay_types": ["2串1", "3串1", "3串4", "4串11"],
+  "min_odds": 1.2,
+  "max_odds": 50,
+  "max_parlay_legs": 6,
+  "hedge_enabled": true,
+  "value_ev_threshold": {
+    "胜平负": 0.05,
+    "让球胜平负": 0.05,
+    "总进球": 0.07,
+    "比分": 0.15,
+    "半全场": 0.12
+  },
+  "notes": "用户偏好配置，workflow自动加载，可手动调整",
+  "last_updated": "2026-09-06"
+}

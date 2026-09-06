@@ -62,6 +62,13 @@
       ],
       "transport": "stdio",
       "type": "stdio"
+    },
+    "news-intelligence": {
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "./servers/news-intelligence/server.py"
+      ]
     }
   }
 }

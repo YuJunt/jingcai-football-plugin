@@ -8,6 +8,7 @@ import os
 import sys
 import time
 import traceback
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
 from fastmcp import FastMCP
@@ -57,6 +58,46 @@ def safe_call(fn, *args, **kwargs):
             return {'error': parsed['error'], 'data': parsed['data']}
     except Exception as e:
         return {'error': str(e), 'traceback': traceback.format_exc()[:200]}
+
+
+def parallel_call(stage, tool_calls, max_workers=4):
+    """
+    并行调用无依赖的工具组
+    tool_calls: [(tool_name, fn, args, kwargs), ...]
+    返回: {tool_name: result}
+    """
+    results = {}
+    start = time.time()
+    
+    def _call_one(name, fn, args, kwargs):
+        t0 = time.time()
+        r = safe_call(fn, *args, **kwargs)
+        elapsed = time.time() - t0
+        if isinstance(r, dict) and 'error' in r:
+            status = 'FAILED'
+            result['tools_failed'] += 1
+            result['observability']['errors'].append({'tool': name, 'error': str(r.get('error', ''))[:100]})
+        else:
+            status = 'OK'
+            result['tools_success'] += 1
+        result['tools_called'] += 1
+        result['tool_results'][name] = {'status': status, 'duration': round(elapsed, 3)}
+        result['observability']['tool_performance'][name] = {'status': status, 'duration': round(elapsed, 3)}
+        print(f"  [{status}] {name} ({elapsed:.2f}s) [并行]")
+        return name, r
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(_call_one, name, fn, args, kwargs): name 
+                   for name, fn, args, kwargs in tool_calls}
+        for future in as_completed(futures):
+            name, r = future.result()
+            results[name] = r
+    
+    if stage not in result['stages']:
+        result['stages'][stage] = []
+    elapsed = time.time() - start
+    result['stages'][stage].append(f"  --- 并行组: {len(tool_calls)}个工具, {elapsed:.2f}s ---")
+    return results
 
 @mcp.tool()
 def run_full_workflow(date: str = None, total_budget: float = 500, risk_preference: str = "balanced") -> dict:
