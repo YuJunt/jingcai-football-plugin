@@ -2,7 +2,7 @@
 
 > 竞彩足球全量深度分析与投注方案插件v1.13.0。包含8个技能（1核心+1方法论+5玩法专属+1混合过关）和9个MCP服务器（178个工具），覆盖数据采集、深度分析、报告生成、质量控制、投注组合、自进化闭环全流程。核心能力：官方5玩法赔率+8大资讯API直采、支持率/资金流/置信度过滤、ML集成模型（85454场训练）、Dixon-Coles/泊松/半全场条件概率、混合过关木桶校验、保本组合+M串N+复式容错、赛后结算+自进化回流、模拟账户管理、参数自校准、自动化测试。全部使用免费数据，无需付费数据源。
 
-![Version](https://img.shields.io/badge/version-1.13.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Skills](https://img.shields.io/badge/skills-8-purple) ![MCP Servers](https://img.shields.io/badge/MCP-9-orange) ![Tools](https://img.shields.io/badge/tools-178-red) ![Tests](https://img.shields.io/badge/tests-21-brightgreen)
+![Version](https://img.shields.io/badge/version-1.13.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Skills](https://img.shields.io/badge/skills-8-purple) ![MCP Servers](https://img.shields.io/badge/MCP-9-orange) ![Tools](https://img.shields.io/badge/tools-178-red) ![Tests](https://img.shields.io/badge/tests-21-brightgreen) ![CI](https://github.com/YuJunt/jingcai-football-plugin/actions/workflows/ci.yml/badge.svg)
 
 ## 功能特性
 
