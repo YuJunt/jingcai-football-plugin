@@ -42,7 +42,7 @@ jobs:
         continue-on-error: false
       
       - name: 上传测试报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-reports
@@ -168,7 +168,7 @@ jobs:
           echo "总计: $total_tools个MCP工具"
       
       - name: 上传验证报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: plugin-validation-report
